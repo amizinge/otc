@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaijaCrypto OTC - Premium Crypto Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <link href="https://unpkg.com/splitting@1.0.6/dist/splitting.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-navy: #1a1d29;
+            --secondary-gold: #f7931a;
+            --accent-blue: #00d4ff;
+            --success-green: #10b981;
+            --warning-amber: #f59e0b;
+            --error-red: #ef4444;
+            --text-white: #ffffff;
+            --text-gray: #e5e7eb;
+            --card-bg: #2d3748;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-navy);
+            color: var(--text-white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Background Effects */
+        .hero-bg {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3748 50%, #1a1d29 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('resources/backgrounds/hero-bg.png') center/cover;
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Effects */
+        .glass-card {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-blue);
+        }
+
+        /* Navigation */
+        .nav-blur {
+            background: rgba(26, 29, 41, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Trading Interface */
+        .trading-panel {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .price-ticker {
+            animation: scroll-left 30s linear infinite;
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .animate-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-green);
+        }
+
+        .notification.error {
+            background: var(--error-red);
+        }
+
+        .notification.info {
+            background: var(--accent-blue);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none;
+            }
+            
+            .mobile-stack {
+                flex-direction: column;
+            }
+            
+            .mobile-full {
+                width: 100%;
+            }
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 400px;
+            width: 100%;
+            background: rgba(45, 55, 72, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        /* Order Book Styles */
+        .order-book {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .order-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .order-row:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* Loading States */
+        .skeleton {
+            background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Canvas -->
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">NaijaCrypto OTC</h1>
+                        <p class="text-xs text-gray-400">Premium Trading Platform</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-blue-400 font-medium hover:text-blue-300 transition-colors">Dashboard</a>
+                    <a href="trading.html" class="text-gray-300 hover:text-white transition-colors">Trading</a>
+                    <a href="wallet.html" class="text-gray-300 hover:text-white transition-colors">Wallet</a>
+                    <a href="kyc.html" class="text-gray-300 hover:text-white transition-colors">KYC</a>
+                    <a href="history.html" class="text-gray-300 hover:text-white transition-colors">History</a>
+                </div>
+
+                <!-- User Account -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block text-right">
+                        <p class="text-sm font-medium text-white">₦2,450,000.00</p>
+                        <p class="text-xs text-gray-400">Total Balance</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">JD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg pt-24 pb-12 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-12">
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-on-scroll">
+                    <span class="typed-text" data-text="Trade Crypto Like a Pro"></span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-on-scroll">
+                    Nigeria's most trusted OTC crypto platform. Buy, sell, and trade cryptocurrencies with real-time market data, advanced security, and professional tools.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center animate-on-scroll">
+                    <button onclick="window.location.href='trading.html'" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
+                        Start Trading Now
+                    </button>
+                    <button onclick="window.location.href='wallet.html'" class="glass-card px-8 py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all">
+                        Create Wallet
+                    </button>
+                </div>
+            </div>
+
+            <!-- Market Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12 animate-on-scroll">
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold text-green-400 mb-2">₦2.4B+</div>
+                    <div class="text-gray-400">Daily Volume</div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold text-blue-400 mb-2">50K+</div>
+                    <div class="text-gray-400">Active Users</div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold text-purple-400 mb-2">6</div>
+                    <div class="text-gray-400">Blockchains</div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold text-yellow-400 mb-2">99.9%</div>
+                    <div class="text-gray-400">Uptime</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Market Ticker -->
+    <section class="py-6 bg-gray-900 overflow-hidden">
+        <div class="price-ticker flex items-center space-x-8 text-nowrap">
+            <div class="flex items-center space-x-2" data-crypto="bitcoin">
+                <span class="font-bold text-yellow-400">₿ Bitcoin</span>
+                <span class="price font-mono text-white">$45,234.56</span>
+                <span class="change positive text-green-400">+2.34%</span>
+            </div>
+            <div class="flex items-center space-x-2" data-crypto="ethereum">
+                <span class="font-bold text-blue-400">Ξ Ethereum</span>
+                <span class="price font-mono text-white">$3,234.56</span>
+                <span class="change positive text-green-400">+1.87%</span>
+            </div>
+            <div class="flex items-center space-x-2" data-crypto="bnb">
+                <span class="font-bold text-yellow-300">BNB</span>
+                <span class="price font-mono text-white">$423.45</span>
+                <span class="change negative text-red-400">-0.56%</span>
+            </div>
+            <div class="flex items-center space-x-2" data-crypto="solana">
+                <span class="font-bold text-purple-400">SOL</span>
+                <span class="price font-mono text-white">$123.45</span>
+                <span class="change positive text-green-400">+3.21%</span>
+            </div>
+            <div class="flex items-center space-x-2" data-crypto="polygon">
+                <span class="font-bold text-blue-300">MATIC</span>
+                <span class="price font-mono text-white">$1.23</span>
+                <span class="change positive text-green-400">+1.45%</span>
+            </div>
+            <div class="flex items-center space-x-2" data-crypto="tron">
+                <span class="font-bold text-red-400">TRX</span>
+                <span class="price font-mono text-white">$0.12</span>
+                <span class="change negative text-red-400">-2.11%</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trading Interface -->
+    <section class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Trading Chart -->
+                <div class="lg:col-span-2 animate-on-scroll">
+                    <div class="glass-card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-white">BTC/USDT Trading Chart</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">1m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">5m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">15m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">1h</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">4h</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">1d</button>
+                            </div>
+                        </div>
+                        <div id="trading-chart" class="chart-container"></div>
+                    </div>
+                </div>
+
+                <!-- Trading Panel -->
+                <div class="animate-on-scroll">
+                    <div class="glass-card p-6">
+                        <div class="flex mb-6">
+                            <button id="buy-tab" class="flex-1 py-3 bg-green-600 text-white font-semibold rounded-l-lg">Buy</button>
+                            <button id="sell-tab" class="flex-1 py-3 bg-gray-600 text-white font-semibold rounded-r-lg">Sell</button>
+                        </div>
+
+                        <!-- Buy Form -->
+                        <form id="buy-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Order Type</label>
+                                <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Market Order</option>
+                                    <option>Limit Order</option>
+                                    <option>Stop Order</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Amount (NGN)</label>
+                                <input type="number" placeholder="10000" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Price (Optional)</label>
+                                <input type="number" placeholder="45234.56" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Fee (0.1%)</span>
+                                    <span class="text-white">₦10.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-2">
+                                    <span class="text-gray-400">Total</span>
+                                    <span class="text-white font-semibold">₦10,010.00</span>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                                Buy Bitcoin
+                            </button>
+                        </form>
+
+                        <!-- Sell Form -->
+                        <form id="sell-form" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Order Type</label>
+                                <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option>Market Order</option>
+                                    <option>Limit Order</option>
+                                    <option>Stop Order</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Amount (BTC)</label>
+                                <input type="number" placeholder="0.001" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Price (Optional)</label>
+                                <input type="number" placeholder="45234.56" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Fee (0.1%)</span>
+                                    <span class="text-white">₦10.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-2">
+                                    <span class="text-gray-400">Total</span>
+                                    <span class="text-white font-semibold">₦44,224.56</span>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                                Sell Bitcoin
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Market Overview -->
+    <section class="py-16 bg-gray-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 animate-on-scroll">Market Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="bitcoin">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">₿</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">Bitcoin</h3>
+                                <p class="text-gray-400 text-sm">BTC</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$45,234.56</div>
+                            <div class="change positive text-green-400 text-sm">+2.34%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$882.5B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$28.5B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="ethereum">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">Ξ</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">Ethereum</h3>
+                                <p class="text-gray-400 text-sm">ETH</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$3,234.56</div>
+                            <div class="change positive text-green-400 text-sm">+1.87%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$388.2B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$15.2B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="bnb">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">BNB</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">BNB</h3>
+                                <p class="text-gray-400 text-sm">BNB</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$423.45</div>
+                            <div class="change negative text-red-400 text-sm">-0.56%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$65.2B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$1.8B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="solana">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">SOL</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">Solana</h3>
+                                <p class="text-gray-400 text-sm">SOL</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$123.45</div>
+                            <div class="change positive text-green-400 text-sm">+3.21%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$52.8B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$2.1B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="polygon">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-400 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">MATIC</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">Polygon</h3>
+                                <p class="text-gray-400 text-sm">MATIC</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$1.23</div>
+                            <div class="change positive text-green-400 text-sm">+1.45%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$12.3B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$485M</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 hover-lift animate-on-scroll" data-crypto="tron">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold">TRX</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white">Tron</h3>
+                                <p class="text-gray-400 text-sm">TRX</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="price font-mono text-white font-semibold">$0.12</div>
+                            <div class="change negative text-red-400 text-sm">-2.11%</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        <div class="flex justify-between">
+                            <span>Market Cap</span>
+                            <span>$10.8B</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>24h Volume</span>
+                            <span>$298M</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Order Book Section -->
+    <section class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Buy Orders -->
+                <div class="glass-card p-6 animate-on-scroll">
+                    <h3 class="text-xl font-bold text-green-400 mb-4">Buy Orders</h3>
+                    <div class="order-book">
+                        <div class="order-row font-semibold text-gray-400 border-b-2 border-gray-600">
+                            <div>Price (NGN)</div>
+                            <div>Amount (BTC)</div>
+                            <div>Total (NGN)</div>
+                        </div>
+                        <div class="order-row text-green-400">
+                            <div>45,234.56</div>
+                            <div>0.0234</div>
+                            <div>1,058.49</div>
+                        </div>
+                        <div class="order-row text-green-400">
+                            <div>45,233.12</div>
+                            <div>0.0156</div>
+                            <div>705.64</div>
+                        </div>
+                        <div class="order-row text-green-400">
+                            <div>45,231.89</div>
+                            <div>0.0891</div>
+                            <div>4,029.16</div>
+                        </div>
+                        <div class="order-row text-green-400">
+                            <div>45,230.45</div>
+                            <div>0.0342</div>
+                            <div>1,546.88</div>
+                        </div>
+                        <div class="order-row text-green-400">
+                            <div>45,228.76</div>
+                            <div>0.0678</div>
+                            <div>3,066.51</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sell Orders -->
+                <div class="glass-card p-6 animate-on-scroll">
+                    <h3 class="text-xl font-bold text-red-400 mb-4">Sell Orders</h3>
+                    <div class="order-book">
+                        <div class="order-row font-semibold text-gray-400 border-b-2 border-gray-600">
+                            <div>Price (NGN)</div>
+                            <div>Amount (BTC)</div>
+                            <div>Total (NGN)</div>
+                        </div>
+                        <div class="order-row text-red-400">
+                            <div>45,235.67</div>
+                            <div>0.0123</div>
+                            <div>556.30</div>
+                        </div>
+                        <div class="order-row text-red-400">
+                            <div>45,236.89</div>
+                            <div>0.0456</div>
+                            <div>2,062.80</div>
+                        </div>
+                        <div class="order-row text-red-400">
+                            <div>45,238.12</div>
+                            <div>0.0789</div>
+                            <div>3,569.29</div>
+                        </div>
+                        <div class="order-row text-red-400">
+                            <div>45,239.34</div>
+                            <div>0.0234</div>
+                            <div>1,058.60</div>
+                        </div>
+                        <div class="order-row text-red-400">
+                            <div>45,240.56</div>
+                            <div>0.0567</div>
+                            <div>2,565.14</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Trades -->
+    <section class="py-16 bg-gray-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 animate-on-scroll">Recent Trades</h2>
+            <div class="glass-card p-6 animate-on-scroll">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-600">
+                                <th class="text-left py-3 text-gray-400 font-semibold">Time</th>
+                                <th class="text-left py-3 text-gray-400 font-semibold">Pair</th>
+                                <th class="text-left py-3 text-gray-400 font-semibold">Type</th>
+                                <th class="text-left py-3 text-gray-400 font-semibold">Price (NGN)</th>
+                                <th class="text-left py-3 text-gray-400 font-semibold">Amount</th>
+                                <th class="text-left py-3 text-gray-400 font-semibold">Total (NGN)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                                <td class="py-3 font-mono text-gray-300">14:23:45</td>
+                                <td class="py-3 text-white font-semibold">BTC/USDT</td>
+                                <td class="py-3"><span class="bg-green-600 text-white px-2 py-1 rounded text-xs">BUY</span></td>
+                                <td class="py-3 font-mono text-green-400">45,234.56</td>
+                                <td class="py-3 font-mono text-white">0.0234</td>
+                                <td class="py-3 font-mono text-white">1,058.49</td>
+                            </tr>
+                            <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                                <td class="py-3 font-mono text-gray-300">14:23:12</td>
+                                <td class="py-3 text-white font-semibold">ETH/USDT</td>
+                                <td class="py-3"><span class="bg-red-600 text-white px-2 py-1 rounded text-xs">SELL</span></td>
+                                <td class="py-3 font-mono text-red-400">3,234.56</td>
+                                <td class="py-3 font-mono text-white">0.1567</td>
+                                <td class="py-3 font-mono text-white">506.85</td>
+                            </tr>
+                            <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                                <td class="py-3 font-mono text-gray-300">14:22:56</td>
+                                <td class="py-3 text-white font-semibold">SOL/USDT</td>
+                                <td class="py-3"><span class="bg-green-600 text-white px-2 py-1 rounded text-xs">BUY</span></td>
+                                <td class="py-3 font-mono text-green-400">123.45</td>
+                                <td class="py-3 font-mono text-white">2.3456</td>
+                                <td class="py-3 font-mono text-white">289.56</td>
+                            </tr>
+                            <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                                <td class="py-3 font-mono text-gray-300">14:22:34</td>
+                                <td class="py-3 text-white font-semibold">BTC/USDT</td>
+                                <td class="py-3"><span class="bg-red-600 text-white px-2 py-1 rounded text-xs">SELL</span></td>
+                                <td class="py-3 font-mono text-red-400">45,235.67</td>
+                                <td class="py-3 font-mono text-white">0.0123</td>
+                                <td class="py-3 font-mono text-white">556.30</td>
+                            </tr>
+                            <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+                                <td class="py-3 font-mono text-gray-300">14:22:12</td>
+                                <td class="py-3 text-white font-semibold">MATIC/USDT</td>
+                                <td class="py-3"><span class="bg-green-600 text-white px-2 py-1 rounded text-xs">BUY</span></td>
+                                <td class="py-3 font-mono text-green-400">1.23</td>
+                                <td class="py-3 font-mono text-white">100.45</td>
+                                <td class="py-3 font-mono text-white">123.55</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Features -->
+    <section class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12 animate-on-scroll">Why Choose NaijaCrypto OTC</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">Bank-Level Security</h3>
+                    <p class="text-gray-400">Multi-signature wallets, cold storage, and advanced encryption to protect your assets 24/7.</p>
+                </div>
+
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">Lightning Fast Trades</h3>
+                    <p class="text-gray-400">Execute trades in milliseconds with our high-performance matching engine and real-time data feeds.</p>
+                </div>
+
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">NGN Integration</h3>
+                    <p class="text-gray-400">Seamless integration with Nigerian banking systems for easy deposits and withdrawals in Naira.</p>
+                </div>
+
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">Advanced Charts</h3>
+                    <p class="text-gray-400">Professional trading charts with technical indicators, multiple timeframes, and real-time data.</p>
+                </div>
+
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">OTC Desk</h3>
+                    <p class="text-gray-400">Personal OTC trading desk with verified traders for large volume transactions and better rates.</p>
+                </div>
+
+                <div class="glass-card p-8 text-center hover-lift animate-on-scroll">
+                    <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">24/7 Support</h3>
+                    <p class="text-gray-400">Round-the-clock customer support in English and Nigerian languages to assist with any issues.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">NaijaCrypto OTC</h3>
+                </div>
+                <p class="text-gray-400 mb-6">Nigeria's premier cryptocurrency trading platform</p>
+                <div class="border-t border-gray-700 pt-6">
+                    <p class="text-gray-500 text-sm">© 2025 NaijaCrypto OTC. All rights reserved. Built for Nigerian crypto traders.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Trading panel tab switching
+        document.getElementById('buy-tab').addEventListener('click', function() {
+            this.className = 'flex-1 py-3 bg-green-600 text-white font-semibold rounded-l-lg';
+            document.getElementById('sell-tab').className = 'flex-1 py-3 bg-gray-600 text-white font-semibold rounded-r-lg';
+            document.getElementById('buy-form').classList.remove('hidden');
+            document.getElementById('sell-form').classList.add('hidden');
+        });
+
+        document.getElementById('sell-tab').addEventListener('click', function() {
+            this.className = 'flex-1 py-3 bg-red-600 text-white font-semibold rounded-r-lg';
+            document.getElementById('buy-tab').className = 'flex-1 py-3 bg-gray-600 text-white font-semibold rounded-l-lg';
+            document.getElementById('sell-form').classList.remove('hidden');
+            document.getElementById('buy-form').classList.add('hidden');
+        });
+
+        // Form submissions
+        document.getElementById('buy-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.cryptoPlatform.showNotification('Buy order placed successfully!', 'success');
+        });
+
+        document.getElementById('sell-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.cryptoPlatform.showNotification('Sell order placed successfully!', 'success');
+        });
+    </script>
+</body>
+</html>

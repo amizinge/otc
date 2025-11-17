@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Trading - NaijaCrypto OTC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <link href="https://unpkg.com/splitting@1.0.6/dist/splitting.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-navy: #1a1d29;
+            --secondary-gold: #f7931a;
+            --accent-blue: #00d4ff;
+            --success-green: #10b981;
+            --warning-amber: #f59e0b;
+            --error-red: #ef4444;
+            --text-white: #ffffff;
+            --text-gray: #e5e7eb;
+            --card-bg: #2d3748;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-navy);
+            color: var(--text-white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Background Effects */
+        .hero-bg {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3748 50%, #1a1d29 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Effects */
+        .glass-card {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-blue);
+        }
+
+        /* Navigation */
+        .nav-blur {
+            background: rgba(26, 29, 41, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Trading Interface */
+        .trading-panel {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Order Book */
+        .order-book {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .order-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .order-row:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .order-row.header {
+            background: rgba(55, 65, 81, 0.8);
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        /* Market Depth */
+        .depth-bar {
+            height: 20px;
+            position: relative;
+            background: rgba(55, 65, 81, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .depth-fill {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: width 0.3s ease;
+        }
+
+        .depth-fill.buy {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+        }
+
+        .depth-fill.sell {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+        }
+
+        /* Trading Form */
+        .trading-form {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-input {
+            background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Order Type Tabs */
+        .order-tab {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .order-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .order-tab:not(.active) {
+            background: rgba(55, 65, 81, 0.8);
+            color: var(--text-gray);
+        }
+
+        .order-tab:not(.active):hover {
+            background: rgba(55, 65, 81, 1);
+            color: white;
+        }
+
+        /* Position Cards */
+        .position-card {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .position-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 500px;
+            width: 100%;
+            background: rgba(45, 55, 72, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .animate-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-green);
+        }
+
+        .notification.error {
+            background: var(--error-red);
+        }
+
+        .notification.info {
+            background: var(--accent-blue);
+        }
+
+        /* Trade Button */
+        .trade-button {
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trade-button.buy {
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            color: white;
+        }
+
+        .trade-button.buy:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .trade-button.sell {
+            background: linear-gradient(135deg, var(--error-red), #dc2626);
+            color: white;
+        }
+
+        .trade-button.sell:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Market Stats */
+        .market-stat {
+            text-align: center;
+            padding: 16px;
+            background: rgba(45, 55, 72, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Leverage Slider */
+        .leverage-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .leverage-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .leverage-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Canvas -->
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">NaijaCrypto OTC</h1>
+                        <p class="text-xs text-gray-400">Premium Trading Platform</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-300 hover:text-white transition-colors">Dashboard</a>
+                    <a href="trading.html" class="text-blue-400 font-medium hover:text-blue-300 transition-colors">Trading</a>
+                    <a href="wallet.html" class="text-gray-300 hover:text-white transition-colors">Wallet</a>
+                    <a href="kyc.html" class="text-gray-300 hover:text-white transition-colors">KYC</a>
+                    <a href="history.html" class="text-gray-300 hover:text-white transition-colors">History</a>
+                </div>
+
+                <!-- User Account -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block text-right">
+                        <p class="text-sm font-medium text-white">₦2,450,000.00</p>
+                        <p class="text-xs text-gray-400">Total Balance</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">JD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg pt-24 pb-12 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6 animate-on-scroll">
+                    <span class="typed-text" data-text="Professional Trading"></span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-on-scroll">
+                    Advanced trading interface with real-time charts, professional order types, and institutional-grade tools for serious traders.
+                </p>
+            </div>
+
+            <!-- Market Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 animate-on-scroll">
+                <div class="market-stat">
+                    <div class="text-2xl font-bold text-green-400 mb-1">₦45,234.56</div>
+                    <div class="text-gray-400 text-sm">BTC Price</div>
+                    <div class="text-green-400 text-xs">+2.34%</div>
+                </div>
+                <div class="market-stat">
+                    <div class="text-2xl font-bold text-blue-400 mb-1">₦3,234.56</div>
+                    <div class="text-gray-400 text-sm">ETH Price</div>
+                    <div class="text-green-400 text-xs">+1.87%</div>
+                </div>
+                <div class="market-stat">
+                    <div class="text-2xl font-bold text-yellow-400 mb-1">₦423.45</div>
+                    <div class="text-gray-400 text-sm">BNB Price</div>
+                    <div class="text-red-400 text-xs">-0.56%</div>
+                </div>
+                <div class="market-stat">
+                    <div class="text-2xl font-bold text-purple-400 mb-1">₦123.45</div>
+                    <div class="text-gray-400 text-sm">SOL Price</div>
+                    <div class="text-green-400 text-xs">+3.21%</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trading Interface -->
+    <section class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Chart Section -->
+                <div class="lg:col-span-2 animate-on-scroll">
+                    <div class="glass-card p-6 mb-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-white">BTC/USDT</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">1m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">5m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">15m</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">1h</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">4h</button>
+                                <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm">1d</button>
+                            </div>
+                        </div>
+                        <div id="advanced-chart" class="chart-container"></div>
+                    </div>
+
+                    <!-- Technical Indicators -->
+                    <div class="glass-card p-6 animate-on-scroll">
+                        <h3 class="text-xl font-bold text-white mb-4">Technical Indicators</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-blue-400">RSI (14)</div>
+                                <div class="text-2xl font-mono text-white">67.34</div>
+                                <div class="text-gray-400 text-sm">Neutral</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-green-400">MACD</div>
+                                <div class="text-2xl font-mono text-white">+0.23</div>
+                                <div class="text-green-400 text-sm">Bullish</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-yellow-400">Bollinger</div>
+                                <div class="text-2xl font-mono text-white">Mid</div>
+                                <div class="text-yellow-400 text-sm">Consolidating</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-purple-400">Volume</div>
+                                <div class="text-2xl font-mono text-white">1.2B</div>
+                                <div class="text-green-400 text-sm">High</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Book -->
+                <div class="animate-on-scroll">
+                    <div class="glass-card p-6 mb-6">
+                        <h3 class="text-xl font-bold text-white mb-4">Order Book</h3>
+                        <div class="order-book">
+                            <div class="order-row header">
+                                <div>Price (NGN)</div>
+                                <div>Amount (BTC)</div>
+                                <div>Total (NGN)</div>
+                            </div>
+                            
+                            <!-- Sell Orders -->
+                            <div class="order-row text-red-400">
+                                <div>45,238.12</div>
+                                <div>0.0789</div>
+                                <div>3,569.29</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill sell" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-red-400">
+                                <div>45,237.89</div>
+                                <div>0.0456</div>
+                                <div>2,062.80</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill sell" style="width: 60%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-red-400">
+                                <div>45,236.34</div>
+                                <div>0.0234</div>
+                                <div>1,058.60</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill sell" style="width: 35%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-red-400">
+                                <div>45,235.67</div>
+                                <div>0.0123</div>
+                                <div>556.30</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill sell" style="width: 20%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Current Price -->
+                            <div class="order-row bg-blue-600 bg-opacity-20 border-y border-blue-600">
+                                <div class="font-bold text-blue-400">45,234.56</div>
+                                <div class="font-bold text-white">Current Price</div>
+                                <div class="font-bold text-blue-400">+2.34%</div>
+                            </div>
+
+                            <!-- Buy Orders -->
+                            <div class="order-row text-green-400">
+                                <div>45,234.12</div>
+                                <div>0.0234</div>
+                                <div>1,058.49</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill buy" style="width: 25%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-green-400">
+                                <div>45,233.45</div>
+                                <div>0.0156</div>
+                                <div>705.64</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill buy" style="width: 40%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-green-400">
+                                <div>45,232.78</div>
+                                <div>0.0891</div>
+                                <div>4,029.16</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill buy" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <div class="order-row text-green-400">
+                                <div>45,231.23</div>
+                                <div>0.0342</div>
+                                <div>1,546.88</div>
+                                <div class="depth-bar">
+                                    <div class="depth-fill buy" style="width: 45%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Trades -->
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold text-white mb-4">Recent Trades</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-gray-400">14:23:45</span>
+                                <span class="font-mono text-red-400">45,234.56</span>
+                                <span class="font-mono text-gray-300">0.0234</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-gray-400">14:23:44</span>
+                                <span class="font-mono text-green-400">45,234.12</span>
+                                <span class="font-mono text-gray-300">0.0156</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-gray-400">14:23:43</span>
+                                <span class="font-mono text-green-400">45,233.89</span>
+                                <span class="font-mono text-gray-300">0.0891</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-gray-400">14:23:42</span>
+                                <span class="font-mono text-red-400">45,234.45</span>
+                                <span class="font-mono text-gray-300">0.0342</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-mono text-gray-400">14:23:41</span>
+                                <span class="font-mono text-green-400">45,233.67</span>
+                                <span class="font-mono text-gray-300">0.0678</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trading Panel -->
+                <div class="animate-on-scroll">
+                    <div class="trading-form p-6 mb-6">
+                        <div class="flex mb-6">
+                            <button onclick="switchOrderType('buy')" id="buy-tab" class="order-tab active flex-1">Buy</button>
+                            <button onclick="switchOrderType('sell')" id="sell-tab" class="order-tab flex-1">Sell</button>
+                        </div>
+
+                        <!-- Order Type Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Order Type</label>
+                            <select id="order-type" class="form-input">
+                                <option value="market">Market Order</option>
+                                <option value="limit">Limit Order</option>
+                                <option value="stop">Stop Order</option>
+                                <option value="stop-limit">Stop-Limit Order</option>
+                                <option value="trailing-stop">Trailing Stop</option>
+                            </select>
+                        </div>
+
+                        <!-- Price Input (for limit orders) -->
+                        <div class="mb-6" id="price-input-container" style="display: none;">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Price (NGN)</label>
+                            <input type="number" id="price-input" class="form-input" placeholder="45,234.56">
+                        </div>
+
+                        <!-- Amount Input -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Amount (BTC)</label>
+                            <input type="number" id="amount-input" class="form-input" placeholder="0.001" step="0.0001">
+                            <div class="flex justify-between text-xs text-gray-400 mt-2">
+                                <span>Available: 0.23456789 BTC</span>
+                                <button onclick="setMaxAmount()" class="text-blue-400 hover:text-blue-300">MAX</button>
+                            </div>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Total (NGN)</label>
+                            <input type="number" id="total-input" class="form-input" placeholder="1,000.00" step="0.01">
+                            <div class="flex justify-between text-xs text-gray-400 mt-2">
+                                <span>Available: ₦2,450,000.00</span>
+                                <button onclick="setMaxTotal()" class="text-blue-400 hover:text-blue-300">MAX</button>
+                            </div>
+                        </div>
+
+                        <!-- Leverage -->
+                        <div class="mb-6">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-medium text-gray-300">Leverage</label>
+                                <span id="leverage-value" class="text-blue-400 font-mono">1x</span>
+                            </div>
+                            <input type="range" id="leverage-slider" class="leverage-slider" min="1" max="10" value="1" step="0.1">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>1x</span>
+                                <span>10x</span>
+                            </div>
+                        </div>
+
+                        <!-- Order Summary -->
+                        <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">Fee (0.1%)</span>
+                                <span class="text-white" id="fee-amount">₦1.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">Leverage Fee</span>
+                                <span class="text-white" id="leverage-fee">₦0.00</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-semibold border-t border-gray-600 pt-2">
+                                <span class="text-gray-300">Total Cost</span>
+                                <span class="text-white" id="total-cost">₦1,001.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Trade Button -->
+                        <button onclick="placeOrder()" id="trade-button" class="trade-button buy w-full">
+                            Buy Bitcoin
+                        </button>
+                    </div>
+
+                    <!-- Open Positions -->
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold text-white mb-4">Open Positions</h3>
+                        <div class="space-y-3">
+                            <div class="position-card">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-semibold text-white">BTC/USDT</span>
+                                    <span class="text-green-400 text-sm">Long 2x</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Size: 0.0234 BTC</span>
+                                    <span class="text-white">₦1,058.49</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Entry: ₦45,234.56</span>
+                                    <span class="text-green-400">+₦23.45</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-2">
+                                    <span class="text-gray-400">P&L</span>
+                                    <span class="text-green-400 font-semibold">+2.21%</span>
+                                </div>
+                            </div>
+
+                            <div class="position-card">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-semibold text-white">ETH/USDT</span>
+                                    <span class="text-red-400 text-sm">Short 1x</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Size: 0.1567 ETH</span>
+                                    <span class="text-white">₦506.85</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Entry: ₦3,234.56</span>
+                                    <span class="text-red-400">-₦12.34</span>
+                                </div>
+                                <div class="flex justify-between text-sm mt-2">
+                                    <span class="text-gray-400">P&L</span>
+                                    <span class="text-red-400 font-semibold">-2.43%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">NaijaCrypto OTC</h3>
+                </div>
+                <p class="text-gray-400 mb-6">Nigeria's premier cryptocurrency trading platform</p>
+                <div class="border-t border-gray-700 pt-6">
+                    <p class="text-gray-500 text-sm">© 2025 NaijaCrypto OTC. All rights reserved. Built for Nigerian crypto traders.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Advanced trading functionality
+        let currentOrderType = 'buy';
+        let currentLeverage = 1;
+
+        // Initialize advanced chart
+        function initializeAdvancedChart() {
+            const chartContainer = document.getElementById('advanced-chart');
+            if (!chartContainer || typeof echarts === 'undefined') return;
+
+            const chart = echarts.init(chartContainer);
+            
+            // Generate more detailed OHLC data
+            const data = generateAdvancedOHLCData();
+            
+            const option = {
+                backgroundColor: 'transparent',
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '10%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.map(item => item.time),
+                    axisLine: { lineStyle: { color: '#4a5568' } },
+                    axisLabel: { color: '#a0aec0', fontSize: 10 }
+                },
+                yAxis: {
+                    type: 'value',
+                    scale: true,
+                    axisLine: { lineStyle: { color: '#4a5568' } },
+                    axisLabel: { color: '#a0aec0', fontSize: 10 },
+                    splitLine: { lineStyle: { color: '#2d3748' } }
+                },
+                series: [{
+                    type: 'candlestick',
+                    data: data.map(item => [item.open, item.close, item.low, item.high]),
+                    itemStyle: {
+                        color: '#10b981',
+                        color0: '#ef4444',
+                        borderColor: '#10b981',
+                        borderColor0: '#ef4444'
+                    }
+                }],
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: '#2d3748',
+                    borderColor: '#4a5568',
+                    textStyle: { color: '#e2e8f0' },
+                    formatter: function(params) {
+                        const data = params[0].data;
+                        return `Open: ₦${data[0]}<br/>Close: ₦${data[1]}<br/>Low: ₦${data[2]}<br/>High: ₦${data[3]}`;
+                    }
+                },
+                dataZoom: [{
+                    type: 'inside',
+                    start: 70,
+                    end: 100
+                }]
+            };
+            
+            chart.setOption(option);
+            
+            // Store chart instance for updates
+            window.advancedChart = chart;
+        }
+
+        function generateAdvancedOHLCData() {
+            const data = [];
+            let basePrice = 45000;
+            const now = new Date();
+            
+            for (let i = 0; i < 100; i++) {
+                const time = new Date(now.getTime() - (99 - i) * 60000); // 1 minute intervals
+                const open = basePrice + (Math.random() - 0.5) * 500;
+                const close = open + (Math.random() - 0.5) * 1000;
+                const high = Math.max(open, close) + Math.random() * 300;
+                const low = Math.min(open, close) - Math.random() * 300;
+                
+                data.push({
+                    time: time.toLocaleTimeString('en-US', { hour12: false }),
+                    open: open.toFixed(2),
+                    close: close.toFixed(2),
+                    high: high.toFixed(2),
+                    low: low.toFixed(2)
+                });
+                
+                basePrice = close;
+            }
+            
+            return data;
+        }
+
+        // Switch between buy and sell
+        function switchOrderType(type) {
+            currentOrderType = type;
+            
+            const buyTab = document.getElementById('buy-tab');
+            const sellTab = document.getElementById('sell-tab');
+            const tradeButton = document.getElementById('trade-button');
+            
+            if (type === 'buy') {
+                buyTab.className = 'order-tab active flex-1';
+                sellTab.className = 'order-tab flex-1';
+                tradeButton.className = 'trade-button buy w-full';
+                tradeButton.textContent = 'Buy Bitcoin';
+            } else {
+                sellTab.className = 'order-tab active flex-1';
+                buyTab.className = 'order-tab flex-1';
+                tradeButton.className = 'trade-button sell w-full';
+                tradeButton.textContent = 'Sell Bitcoin';
+            }
+        }
+
+        // Order type change handler
+        document.getElementById('order-type').addEventListener('change', function(e) {
+            const priceContainer = document.getElementById('price-input-container');
+            if (e.target.value === 'limit' || e.target.value === 'stop-limit') {
+                priceContainer.style.display = 'block';
+            } else {
+                priceContainer.style.display = 'none';
+            }
+        });
+
+        // Leverage slider
+        document.getElementById('leverage-slider').addEventListener('input', function(e) {
+            currentLeverage = parseFloat(e.target.value);
+            document.getElementById('leverage-value').textContent = currentLeverage.toFixed(1) + 'x';
+            updateOrderSummary();
+        });
+
+        // Amount and total calculations
+        document.getElementById('amount-input').addEventListener('input', function(e) {
+            const amount = parseFloat(e.target.value) || 0;
+            const price = 45234.56; // Current market price
+            const total = amount * price;
+            document.getElementById('total-input').value = total.toFixed(2);
+            updateOrderSummary();
+        });
+
+        document.getElementById('total-input').addEventListener('input', function(e) {
+            const total = parseFloat(e.target.value) || 0;
+            const price = 45234.56; // Current market price
+            const amount = total / price;
+            document.getElementById('amount-input').value = amount.toFixed(8);
+            updateOrderSummary();
+        });
+
+        function setMaxAmount() {
+            const available = 0.23456789;
+            document.getElementById('amount-input').value = available;
+            const price = 45234.56;
+            document.getElementById('total-input').value = (available * price).toFixed(2);
+            updateOrderSummary();
+        }
+
+        function setMaxTotal() {
+            const available = 2450000.00;
+            document.getElementById('total-input').value = available;
+            const price = 45234.56;
+            document.getElementById('amount-input').value = (available / price).toFixed(8);
+            updateOrderSummary();
+        }
+
+        function updateOrderSummary() {
+            const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+            const price = 45234.56;
+            const total = amount * price;
+            
+            const fee = total * 0.001; // 0.1% fee
+            const leverageFee = total * (currentLeverage - 1) * 0.0005; // Leverage fee
+            const totalCost = total + fee + leverageFee;
+            
+            document.getElementById('fee-amount').textContent = '₦' + fee.toFixed(2);
+            document.getElementById('leverage-fee').textContent = '₦' + leverageFee.toFixed(2);
+            document.getElementById('total-cost').textContent = '₦' + totalCost.toFixed(2);
+        }
+
+        function placeOrder() {
+            const orderType = document.getElementById('order-type').value;
+            const amount = document.getElementById('amount-input').value;
+            const total = document.getElementById('total-input').value;
+            
+            if (!amount || !total) {
+                window.cryptoPlatform.showNotification('Please enter amount and total', 'error');
+                return;
+            }
+            
+            const order = {
+                type: currentOrderType,
+                orderType: orderType,
+                amount: parseFloat(amount),
+                total: parseFloat(total),
+                leverage: currentLeverage,
+                timestamp: new Date().toISOString()
+            };
+            
+            window.cryptoPlatform.showNotification(`${currentOrderType.toUpperCase()} order placed successfully!`, 'success');
+            
+            // Reset form
+            document.getElementById('amount-input').value = '';
+            document.getElementById('total-input').value = '';
+            updateOrderSummary();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAdvancedChart();
+            updateOrderSummary();
+            
+            // Update chart every 30 seconds
+            setInterval(() => {
+                if (window.advancedChart) {
+                    const newData = generateAdvancedOHLCData();
+                    window.advancedChart.setOption({
+                        xAxis: {
+                            data: newData.map(item => item.time)
+                        },
+                        series: [{
+                            data: newData.map(item => [item.open, item.close, item.low, item.high])
+                        }]
+                    });
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

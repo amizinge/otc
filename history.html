@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - NaijaCrypto OTC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <link href="https://unpkg.com/splitting@1.0.6/dist/splitting.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-navy: #1a1d29;
+            --secondary-gold: #f7931a;
+            --accent-blue: #00d4ff;
+            --success-green: #10b981;
+            --warning-amber: #f59e0b;
+            --error-red: #ef4444;
+            --text-white: #ffffff;
+            --text-gray: #e5e7eb;
+            --card-bg: #2d3748;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-navy);
+            color: var(--text-white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Background Effects */
+        .hero-bg {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3748 50%, #1a1d29 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Effects */
+        .glass-card {
+            background: rgba(45, 55, 72, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-blue);
+        }
+
+        /* Navigation */
+        .nav-blur {
+            background: rgba(26, 29, 41, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Filter Tabs */
+        .filter-tab {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .filter-tab:not(.active) {
+            background: rgba(55, 65, 81, 0.8);
+            color: var(--text-gray);
+        }
+
+        .filter-tab:not(.active):hover {
+            background: rgba(55, 65, 81, 1);
+            color: white;
+        }
+
+        /* Transaction Table */
+        .transaction-table {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .transaction-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto auto;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .transaction-row:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .transaction-header {
+            background: rgba(55, 65, 81, 0.8);
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Type Badges */
+        .type-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .type-badge.buy {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .type-badge.sell {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .type-badge.transfer {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .type-badge.receive {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .animate-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-green);
+        }
+
+        .notification.error {
+            background: var(--error-red);
+        }
+
+        .notification.info {
+            background: var(--accent-blue);
+        }
+
+        /* Search and Filter */
+        .search-input {
+            background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Date Range Picker */
+        .date-input {
+            background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        /* Export Button */
+        .export-button {
+            background: linear-gradient(135deg, var(--secondary-gold), var(--warning-amber));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(247, 147, 26, 0.3);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .pagination-button {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(55, 65, 81, 0.8);
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-button:hover {
+            background: rgba(55, 65, 81, 1);
+            color: white;
+        }
+
+        .pagination-button.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        /* Summary Cards */
+        .summary-card {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-blue);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Canvas -->
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">NaijaCrypto OTC</h1>
+                        <p class="text-xs text-gray-400">Premium Trading Platform</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-300 hover:text-white transition-colors">Dashboard</a>
+                    <a href="trading.html" class="text-gray-300 hover:text-white transition-colors">Trading</a>
+                    <a href="wallet.html" class="text-gray-300 hover:text-white transition-colors">Wallet</a>
+                    <a href="kyc.html" class="text-gray-300 hover:text-white transition-colors">KYC</a>
+                    <a href="history.html" class="text-blue-400 font-medium hover:text-blue-300 transition-colors">History</a>
+                </div>
+
+                <!-- User Account -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block text-right">
+                        <p class="text-sm font-medium text-white">₦2,450,000.00</p>
+                        <p class="text-xs text-gray-400">Total Balance</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">JD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-bg pt-24 pb-12 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6 animate-on-scroll">
+                    <span class="typed-text" data-text="Transaction History"></span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto animate-on-scroll">
+                    Comprehensive transaction records, audit trails, and compliance reporting for all your cryptocurrency activities.
+                </p>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 animate-on-scroll">
+                <div class="summary-card">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-green-400 mb-2">₦45,234,567.89</div>
+                    <div class="text-gray-400">Total Volume</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-400 mb-2">1,234</div>
+                    <div class="text-gray-400">Total Transactions</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-yellow-400 mb-2">+₦1,234,567.89</div>
+                    <div class="text-gray-400">Total Profit</div>
+                </div>
+
+                <div class="summary-card">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-purple-400 mb-2">0.1%</div>
+                    <div class="text-gray-400">Average Fee</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters and Search -->
+    <section class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="glass-card p-6 animate-on-scroll">
+                <div class="flex flex-col lg:flex-row gap-6 items-center">
+                    <!-- Search -->
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Search Transactions</label>
+                        <input type="text" id="search-input" class="search-input" placeholder="Search by hash, address, or amount...">
+                    </div>
+
+                    <!-- Date Range -->
+                    <div class="flex gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">From Date</label>
+                            <input type="date" id="from-date" class="date-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">To Date</label>
+                            <input type="date" id="to-date" class="date-input">
+                        </div>
+                    </div>
+
+                    <!-- Export Button -->
+                    <div class="flex items-end">
+                        <button onclick="exportTransactions()" class="export-button">
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <button onclick="filterTransactions('all')" class="filter-tab active">All</button>
+                    <button onclick="filterTransactions('buy')" class="filter-tab">Buy</button>
+                    <button onclick="filterTransactions('sell')" class="filter-tab">Sell</button>
+                    <button onclick="filterTransactions('transfer')" class="filter-tab">Transfer</button>
+                    <button onclick="filterTransactions('receive')" class="filter-tab">Receive</button>
+                    <button onclick="filterTransactions('bitcoin')" class="filter-tab">Bitcoin</button>
+                    <button onclick="filterTransactions('ethereum')" class="filter-tab">Ethereum</button>
+                    <button onclick="filterTransactions('bnb')" class="filter-tab">BNB</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Transaction Table -->
+    <section class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="transaction-table animate-on-scroll">
+                <!-- Table Header -->
+                <div class="transaction-row transaction-header">
+                    <div>Date</div>
+                    <div>Type</div>
+                    <div>Amount</div>
+                    <div>Price</div>
+                    <div>Total (NGN)</div>
+                    <div>Status</div>
+                </div>
+
+                <!-- Table Body -->
+                <div id="transaction-list">
+                    <!-- Transaction Row 1 -->
+                    <div class="transaction-row" data-type="buy" data-crypto="bitcoin">
+                        <div>
+                            <div class="font-mono text-white">2025-01-15</div>
+                            <div class="text-gray-400 text-sm">14:23:45</div>
+                        </div>
+                        <div>
+                            <div class="type-badge buy">Buy</div>
+                            <div class="text-gray-400 text-sm">BTC/USDT</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.0234 BTC</div>
+                            <div class="text-gray-400 text-sm">₦1,058.49</div>
+                        </div>
+                        <div class="font-mono text-white">₦45,234.56</div>
+                        <div class="font-mono text-green-400">₦1,058.49</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 1A1zP1eP5...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 2 -->
+                    <div class="transaction-row" data-type="sell" data-crypto="ethereum">
+                        <div>
+                            <div class="font-mono text-white">2025-01-15</div>
+                            <div class="text-gray-400 text-sm">13:45:12</div>
+                        </div>
+                        <div>
+                            <div class="type-badge sell">Sell</div>
+                            <div class="text-gray-400 text-sm">ETH/USDT</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.1567 ETH</div>
+                            <div class="text-gray-400 text-sm">₦506.85</div>
+                        </div>
+                        <div class="font-mono text-white">₦3,234.56</div>
+                        <div class="font-mono text-red-400">₦506.85</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 0x742d35...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 3 -->
+                    <div class="transaction-row" data-type="receive" data-crypto="solana">
+                        <div>
+                            <div class="font-mono text-white">2025-01-15</div>
+                            <div class="text-gray-400 text-sm">12:30:56</div>
+                        </div>
+                        <div>
+                            <div class="type-badge receive">Receive</div>
+                            <div class="text-gray-400 text-sm">SOL</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">2.3456 SOL</div>
+                            <div class="text-gray-400 text-sm">₦289.56</div>
+                        </div>
+                        <div class="font-mono text-white">₦123.45</div>
+                        <div class="font-mono text-blue-400">₦289.56</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 7xKXtg2C...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 4 -->
+                    <div class="transaction-row" data-type="transfer" data-crypto="bnb">
+                        <div>
+                            <div class="font-mono text-white">2025-01-15</div>
+                            <div class="text-gray-400 text-sm">11:15:23</div>
+                        </div>
+                        <div>
+                            <div class="type-badge transfer">Transfer</div>
+                            <div class="text-gray-400 text-sm">BNB</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.0891 BNB</div>
+                            <div class="text-gray-400 text-sm">₦37.67</div>
+                        </div>
+                        <div class="font-mono text-white">₦423.45</div>
+                        <div class="font-mono text-blue-400">₦37.67</div>
+                        <div>
+                            <div class="status-badge pending">Pending</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 0x8ba1c10...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 5 -->
+                    <div class="transaction-row" data-type="buy" data-crypto="bitcoin">
+                        <div>
+                            <div class="font-mono text-white">2025-01-14</div>
+                            <div class="text-gray-400 text-sm">16:45:30</div>
+                        </div>
+                        <div>
+                            <div class="type-badge buy">Buy</div>
+                            <div class="text-gray-400 text-sm">BTC/USDT</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.0123 BTC</div>
+                            <div class="text-gray-400 text-sm">₦556.30</div>
+                        </div>
+                        <div class="font-mono text-white">₦45,235.67</div>
+                        <div class="font-mono text-green-400">₦556.30</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 1A1zP1eP...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 6 -->
+                    <div class="transaction-row" data-type="sell" data-crypto="ethereum">
+                        <div>
+                            <div class="font-mono text-white">2025-01-14</div>
+                            <div class="text-gray-400 text-sm">15:20:15</div>
+                        </div>
+                        <div>
+                            <div class="type-badge sell">Sell</div>
+                            <div class="text-gray-400 text-sm">ETH/USDT</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.2345 ETH</div>
+                            <div class="text-gray-400 text-sm">₦758.90</div>
+                        </div>
+                        <div class="font-mono text-white">₦3,234.12</div>
+                        <div class="font-mono text-red-400">₦758.90</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 0x9cb2A1...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 7 -->
+                    <div class="transaction-row" data-type="receive" data-crypto="polygon">
+                        <div>
+                            <div class="font-mono text-white">2025-01-14</div>
+                            <div class="text-gray-400 text-sm">14:10:45</div>
+                        </div>
+                        <div>
+                            <div class="type-badge receive">Receive</div>
+                            <div class="text-gray-400 text-sm">MATIC</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">100.45 MATIC</div>
+                            <div class="text-gray-400 text-sm">₦123.55</div>
+                        </div>
+                        <div class="font-mono text-white">₦1.23</div>
+                        <div class="font-mono text-blue-400">₦123.55</div>
+                        <div>
+                            <div class="status-badge completed">Completed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 0x9cb2A1...</div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Row 8 -->
+                    <div class="transaction-row" data-type="buy" data-crypto="bnb">
+                        <div>
+                            <div class="font-mono text-white">2025-01-14</div>
+                            <div class="text-gray-400 text-sm">13:35:20</div>
+                        </div>
+                        <div>
+                            <div class="type-badge buy">Buy</div>
+                            <div class="text-gray-400 text-sm">BNB/USDT</div>
+                        </div>
+                        <div>
+                            <div class="font-mono text-white">0.5678 BNB</div>
+                            <div class="text-gray-400 text-sm">₦240.34</div>
+                        </div>
+                        <div class="font-mono text-white">₳423.45</div>
+                        <div class="font-mono text-green-400">₦240.34</div>
+                        <div>
+                            <div class="status-badge failed">Failed</div>
+                            <div class="text-gray-400 text-xs mt-1">Tx: 0x8ba1c10...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State (Hidden by default) -->
+                <div id="loading-state" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+
+                <!-- No Results (Hidden by default) -->
+                <div id="no-results" class="text-center py-12" style="display: none;">
+                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.08-2.33m0 0l-.431-.431A7.963 7.963 0 013 12a7.963 7.963 0 012.489-5.76m0 0l.431-.431A7.962 7.962 0 0112 3c2.34 0 4.467.881 6.08 2.33m0 0l.431.431A7.963 7.963 0 0121 12a7.963 7.963 0 01-2.489 5.76m0 0l-.431.431"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-white mb-2">No transactions found</h3>
+                    <p class="text-gray-400">Try adjusting your search criteria or filters</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination animate-on-scroll">
+                <button class="pagination-button" onclick="changePage(-1)">Previous</button>
+                <button class="pagination-button active">1</button>
+                <button class="pagination-button">2</button>
+                <button class="pagination-button">3</button>
+                <button class="pagination-button">4</button>
+                <button class="pagination-button">5</button>
+                <button class="pagination-button" onclick="changePage(1)">Next</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">NaijaCrypto OTC</h3>
+                </div>
+                <p class="text-gray-400 mb-6">Nigeria's premier cryptocurrency trading platform</p>
+                <div class="border-t border-gray-700 pt-6">
+                    <p class="text-gray-500 text-sm">© 2025 NaijaCrypto OTC. All rights reserved. Built for Nigerian crypto traders.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Filter functionality
+        function filterTransactions(filter) {
+            const rows = document.querySelectorAll('#transaction-list .transaction-row');
+            const buttons = document.querySelectorAll('.filter-tab');
+            
+            // Update button states
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Filter rows
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const type = row.dataset.type;
+                const crypto = row.dataset.crypto;
+                
+                if (filter === 'all' || type === filter || crypto === filter) {
+                    row.style.display = 'grid';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            const noResults = document.getElementById('no-results');
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+            
+            window.cryptoPlatform.showNotification(`Showing ${visibleCount} transactions`, 'info');
+        }
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#transaction-list .transaction-row');
+            
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = 'grid';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            const noResults = document.getElementById('no-results');
+            if (visibleCount === 0 && searchTerm.length > 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        });
+
+        // Date filtering
+        function filterByDate() {
+            const fromDate = document.getElementById('from-date').value;
+            const toDate = document.getElementById('to-date').value;
+            
+            if (fromDate && toDate) {
+                window.cryptoPlatform.showNotification(`Filtering transactions from ${fromDate} to ${toDate}`, 'info');
+                // Implement date filtering logic here
+            }
+        }
+
+        // Export functionality
+        function exportTransactions() {
+            const csvContent = generateTransactionCSV();
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transaction-history-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            window.URL.revokeObjectURL(url);
+            window.cryptoPlatform.showNotification('Transaction history exported successfully!', 'success');
+        }
+
+        function generateTransactionCSV() {
+            const headers = ['Date', 'Time', 'Type', 'Pair', 'Amount', 'Price', 'Total (NGN)', 'Status', 'Transaction Hash'];
+            const rows = Array.from(document.querySelectorAll('#transaction-list .transaction-row')).map(row => {
+                const cells = row.querySelectorAll('div');
+                return [
+                    cells[0].querySelector('.font-mono').textContent,
+                    cells[0].querySelector('.text-gray-400').textContent,
+                    cells[1].querySelector('.type-badge').textContent,
+                    cells[1].querySelector('.text-gray-400').textContent,
+                    cells[2].querySelector('.font-mono').textContent,
+                    cells[3].textContent,
+                    cells[4].textContent,
+                    cells[5].querySelector('.status-badge').textContent,
+                    cells[5].querySelector('.text-gray-400').textContent.replace('Tx: ', '')
+                ];
+            });
+            
+            return [headers, ...rows].map(row => row.join(',')).join('\n');
+        }
+
+        // Pagination
+        let currentPage = 1;
+
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            if (newPage >= 1 && newPage <= 5) {
+                currentPage = newPage;
+                
+                // Update pagination buttons
+                const buttons = document.querySelectorAll('.pagination-button');
+                buttons.forEach((btn, index) => {
+                    btn.classList.remove('active');
+                    if (index === currentPage) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Simulate loading
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    window.cryptoPlatform.showNotification(`Showing page ${currentPage}`, 'info');
+                }, 1000);
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('transaction-list').style.display = 'none';
+            document.getElementById('loading-state').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('transaction-list').style.display = 'block';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('to-date').value = today.toISOString().split('T')[0];
+            document.getElementById('from-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>
