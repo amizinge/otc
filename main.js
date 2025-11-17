@@ -8,10 +8,30 @@ class CryptoPlatform {
         this.transactions = [];
         this.kycStatus = null;
         this.marketData = {};
+        this.fiatRate = 1540;
+        this.currencyFormatter = new Intl.NumberFormat('en-NG', {
+            style: 'currency',
+            currency: 'NGN',
+            maximumFractionDigits: 2
+        });
+        this.walletContainer = null;
+        this.walletEmptyState = null;
+        this.supportedNetworks = ['bitcoin', 'ethereum', 'bnb', 'solana', 'polygon', 'tron'];
+        this.networkMeta = {
+            bitcoin: { name: 'Bitcoin', symbol: 'BTC', icon: '₿', color: '#f7931a' },
+            ethereum: { name: 'Ethereum', symbol: 'ETH', icon: 'Ξ', color: '#627eea' },
+            bnb: { name: 'BNB Chain', symbol: 'BNB', icon: 'BNB', color: '#f3ba2f' },
+            solana: { name: 'Solana', symbol: 'SOL', icon: 'SOL', color: '#9945ff' },
+            polygon: { name: 'Polygon', symbol: 'MATIC', icon: 'M', color: '#8247e5' },
+            tron: { name: 'Tron', symbol: 'TRX', icon: 'TRX', color: '#ff0600' }
+        };
         this.init();
     }
 
     init() {
+        this.walletContainer = document.getElementById('wallet-grid');
+        this.walletEmptyState = document.getElementById('wallet-empty');
+        this.transactions = this.loadTransactionsFromStorage();
         this.initializeAnimations();
         this.setupEventListeners();
         this.loadMarketData();
@@ -118,13 +138,15 @@ class CryptoPlatform {
 
     // Wallet Management System
     initializeWallets() {
-        this.supportedNetworks = ['bitcoin', 'ethereum', 'bnb', 'solana', 'polygon', 'tron'];
         this.wallets = this.loadWalletsFromStorage() || {};
         
         // Generate initial wallets if none exist
         if (Object.keys(this.wallets).length === 0) {
             this.generateInitialWallets();
         }
+
+        this.renderWalletGrid();
+        this.updateWalletStats();
     }
 
     generateInitialWallets() {
@@ -135,13 +157,15 @@ class CryptoPlatform {
     }
 
     generateWallet(network) {
+        const meta = this.getNetworkMeta(network);
         const walletData = {
             network: network,
             address: this.generateAddress(network),
             privateKey: this.generatePrivateKey(network),
             balance: Math.random() * 10, // Mock balance
             transactions: [],
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            label: `${meta.name} Vault`
         };
         
         return walletData;
@@ -173,6 +197,150 @@ class CryptoPlatform {
         ).join('');
     }
 
+    getNetworkMeta(network) {
+        return this.networkMeta[network] || { name: network.toUpperCase(), symbol: network.toUpperCase(), icon: network[0]?.toUpperCase() || '?', color: '#4a5568' };
+    }
+
+    formatCryptoBalance(amount, symbol) {
+        if (typeof amount !== 'number') {
+            return `0.0000 ${symbol}`;
+        }
+        return `${amount.toFixed(4)} ${symbol}`;
+    }
+
+    formatFiat(amount) {
+        return this.currencyFormatter.format(amount || 0);
+    }
+
+    convertToNGN(balance, network) {
+        const price = this.marketData?.[network]?.price || 0;
+        const usdValue = (balance || 0) * price;
+        return usdValue * this.fiatRate;
+    }
+
+    calculatePortfolioValue() {
+        return Object.keys(this.wallets).reduce((sum, network) => {
+            return sum + this.convertToNGN(this.wallets[network]?.balance || 0, network);
+        }, 0);
+    }
+
+    calculateDailyPnL() {
+        return Object.keys(this.wallets).reduce((sum, network) => {
+            const change = this.marketData?.[network]?.change || 0;
+            const networkValue = this.convertToNGN(this.wallets[network]?.balance || 0, network);
+            return sum + (networkValue * (change / 100));
+        }, 0);
+    }
+
+    updateWalletStats() {
+        const totalValue = this.calculatePortfolioValue();
+        const pnl = this.calculateDailyPnL();
+        const walletCount = Object.keys(this.wallets).length;
+        const txnCount = this.transactions.length;
+
+        const valueElement = document.getElementById('portfolio-value');
+        const pnlElement = document.getElementById('portfolio-pnl');
+        const walletElement = document.getElementById('wallet-count');
+        const inlineWalletElement = document.getElementById('wallet-count-inline');
+        const txElement = document.getElementById('tx-count');
+
+        if (valueElement) valueElement.textContent = this.formatFiat(totalValue);
+        if (pnlElement) {
+            const absPnl = this.formatFiat(Math.abs(pnl));
+            pnlElement.textContent = `${pnl >= 0 ? '+' : '-'}${absPnl}`;
+            pnlElement.classList.toggle('text-green-400', pnl >= 0);
+            pnlElement.classList.toggle('text-red-400', pnl < 0);
+        }
+        if (walletElement) walletElement.textContent = walletCount;
+        if (inlineWalletElement) inlineWalletElement.textContent = walletCount;
+        if (txElement) txElement.textContent = txnCount;
+    }
+
+    renderWalletGrid() {
+        if (!this.walletContainer) return;
+        const networks = Object.keys(this.wallets);
+
+        if (networks.length === 0) {
+            this.walletContainer.innerHTML = '';
+            this.walletContainer.classList.add('hidden');
+            if (this.walletEmptyState) {
+                this.walletEmptyState.classList.remove('hidden');
+            }
+            return;
+        }
+
+        this.walletContainer.classList.remove('hidden');
+        if (this.walletEmptyState) {
+            this.walletEmptyState.classList.add('hidden');
+        }
+
+        const fragment = document.createDocumentFragment();
+        networks.forEach(network => {
+            const wallet = this.wallets[network];
+            if (!wallet) return;
+            const meta = this.getNetworkMeta(network);
+            const card = document.createElement('div');
+            card.className = 'wallet-card p-6 animate-on-scroll';
+            card.dataset.network = network;
+            card.classList.add('animate-in');
+
+            const fiatValue = this.formatFiat(this.convertToNGN(wallet.balance, network));
+            const balanceText = this.formatCryptoBalance(wallet.balance, meta.symbol);
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="network-icon" style="background:${meta.color}; color: #fff;">${meta.icon}</div>
+                        <div>
+                            <h3 class="font-bold text-white">${meta.name}</h3>
+                            <p class="text-gray-400 text-sm">${wallet.label || meta.symbol} Wallet</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="wallet-balance font-mono text-white font-bold" data-network="${network}">${balanceText}</div>
+                        <div class="wallet-fiat text-gray-400 text-sm" data-network="${network}">${fiatValue}</div>
+                    </div>
+                </div>
+                <div class="address-display text-xs text-gray-300 mb-4" data-copy="${wallet.address}" data-copy-message="${meta.symbol} address copied!" title="Click to copy">
+                    ${wallet.address}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="showReceiveModal('${network}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                        Receive
+                    </button>
+                    <button onclick="showSendModal('${network}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                        Send
+                    </button>
+                    <button onclick="showWalletDetails('${network}')" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                        Details
+                    </button>
+                </div>
+            `;
+
+            fragment.appendChild(card);
+        });
+
+        this.walletContainer.innerHTML = '';
+        this.walletContainer.appendChild(fragment);
+        this.updateWalletDisplay();
+    }
+
+    createNewWallet(network, alias = '') {
+        if (!this.supportedNetworks.includes(network)) {
+            return null;
+        }
+
+        const wallet = this.generateWallet(network);
+        if (alias) {
+            wallet.label = alias;
+        }
+
+        this.wallets[network] = wallet;
+        this.saveWalletsToStorage();
+        this.renderWalletGrid();
+        return wallet;
+    }
+
     // Market Data and Trading
     loadMarketData() {
         // Mock market data - in real implementation, fetch from APIs
@@ -186,6 +354,7 @@ class CryptoPlatform {
         };
         
         this.updateMarketDisplay();
+        this.updateWalletDisplay();
     }
 
     updateMarketDisplay() {
@@ -326,8 +495,17 @@ class CryptoPlatform {
     setupEventListeners() {
         // Navigation
         document.addEventListener('click', (e) => {
-            if (e.target.matches('[data-action]')) {
-                this.handleAction(e.target.dataset.action, e.target);
+            const target = e.target instanceof Element ? e.target : null;
+            if (!target) return;
+
+            const actionTarget = target.closest('[data-action]');
+            if (actionTarget) {
+                this.handleAction(actionTarget.dataset.action, actionTarget);
+            }
+
+            const copyTarget = target.closest('[data-copy]');
+            if (copyTarget?.dataset.copy) {
+                this.copyText(copyTarget.dataset.copy, copyTarget.dataset.copyMessage || 'Copied to clipboard!');
             }
         });
 
@@ -336,15 +514,14 @@ class CryptoPlatform {
             e.preventDefault();
             this.handleFormSubmission(e.target);
         });
-
-        // Real-time updates
-        this.setupRealTimeUpdates();
     }
 
     handleAction(action, element) {
         switch (action) {
             case 'generate-wallet':
-                this.showGenerateWalletModal();
+                if (typeof window !== 'undefined' && typeof window.showGenerateWalletModal === 'function') {
+                    window.showGenerateWalletModal();
+                }
                 break;
             case 'place-order':
                 this.handleOrderPlacement(element);
@@ -493,6 +670,19 @@ class CryptoPlatform {
         }, 3000);
     }
 
+    copyText(value, message = 'Copied to clipboard!') {
+        if (!value || !navigator?.clipboard?.writeText) {
+            this.showNotification('Clipboard not available on this device.', 'error');
+            return;
+        }
+
+        navigator.clipboard.writeText(value).then(() => {
+            this.showNotification(message, 'success');
+        }).catch(() => {
+            this.showNotification('Unable to copy text right now.', 'error');
+        });
+    }
+
     // Real-time Updates
     setupRealTimeUpdates() {
         // Update market data every 30 seconds
@@ -513,6 +703,7 @@ class CryptoPlatform {
             this.wallets[network].balance = Math.max(0, this.wallets[network].balance);
         });
         
+        this.saveWalletsToStorage();
         this.updateWalletDisplay();
     }
 
@@ -549,10 +740,21 @@ class CryptoPlatform {
         const walletElements = document.querySelectorAll('.wallet-balance');
         walletElements.forEach(element => {
             const network = element.dataset.network;
-            if (this.wallets[network]) {
-                element.textContent = `${this.wallets[network].balance.toFixed(4)} ${network.toUpperCase()}`;
-            }
+            const wallet = this.wallets[network];
+            if (!wallet) return;
+            const meta = this.getNetworkMeta(network);
+            element.textContent = this.formatCryptoBalance(wallet.balance, meta.symbol);
         });
+
+        const fiatElements = document.querySelectorAll('.wallet-fiat');
+        fiatElements.forEach(element => {
+            const network = element.dataset.network;
+            const wallet = this.wallets[network];
+            if (!wallet) return;
+            element.textContent = this.formatFiat(this.convertToNGN(wallet.balance, network));
+        });
+
+        this.updateWalletStats();
     }
 }
 
