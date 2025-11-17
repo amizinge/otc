@@ -16,6 +16,12 @@ class CryptoPlatform {
         });
         this.walletContainer = null;
         this.walletEmptyState = null;
+        this.p2pOfferContainer = null;
+        this.p2pActivityContainer = null;
+        this.p2pEmptyState = null;
+        this.p2pOffers = [];
+        this.p2pTrades = [];
+        this.p2pFilters = { side: 'all', asset: 'all', payment: 'all' };
         this.supportedNetworks = ['bitcoin', 'ethereum', 'bnb', 'solana', 'polygon', 'tron'];
         this.networkMeta = {
             bitcoin: { name: 'Bitcoin', symbol: 'BTC', icon: '₿', color: '#f7931a' },
@@ -31,11 +37,17 @@ class CryptoPlatform {
     init() {
         this.walletContainer = document.getElementById('wallet-grid');
         this.walletEmptyState = document.getElementById('wallet-empty');
+        this.p2pOfferContainer = document.getElementById('p2p-offer-list');
+        this.p2pActivityContainer = document.getElementById('p2p-activity');
+        this.p2pEmptyState = document.getElementById('p2p-empty-state');
         this.transactions = this.loadTransactionsFromStorage();
+        this.p2pOffers = this.loadP2POffers();
+        this.p2pTrades = this.loadP2PTrades();
         this.initializeAnimations();
         this.setupEventListeners();
         this.loadMarketData();
         this.initializeWallets();
+        this.initializeP2PDesk();
         this.setupRealTimeUpdates();
     }
 
@@ -341,6 +353,280 @@ class CryptoPlatform {
         return wallet;
     }
 
+    // P2P Desk Management
+    initializeP2PDesk() {
+        if (!this.p2pOfferContainer) {
+            return;
+        }
+
+        if (!Array.isArray(this.p2pOffers) || this.p2pOffers.length === 0) {
+            this.p2pOffers = this.generateSeedP2POffers();
+            this.saveP2POffers();
+        }
+
+        if (!Array.isArray(this.p2pTrades) || this.p2pTrades.length === 0) {
+            this.p2pTrades = this.generateSeedP2PTrades();
+            this.saveP2PTrades();
+        }
+
+        this.renderP2POffers();
+        this.renderP2PActivity();
+        this.renderP2PStats();
+    }
+
+    generateSeedP2POffers() {
+        const now = Date.now();
+        return [
+            {
+                id: this.generateP2POfferId(),
+                type: 'buy',
+                asset: 'USDT',
+                price: 780.5,
+                min: 200000,
+                max: 5000000,
+                paymentMethod: 'Bank Transfer',
+                merchant: 'LagosVault',
+                completionRate: 99,
+                trades: 320,
+                note: 'Same bank transfers preferred',
+                createdAt: new Date(now - 600000).toISOString()
+            },
+            {
+                id: this.generateP2POfferId(),
+                type: 'sell',
+                asset: 'BTC',
+                price: 58500000,
+                min: 150000,
+                max: 2000000,
+                paymentMethod: 'USSD',
+                merchant: 'AbujaBlock',
+                completionRate: 97,
+                trades: 210,
+                note: 'Release within 10 minutes',
+                createdAt: new Date(now - 1200000).toISOString()
+            },
+            {
+                id: this.generateP2POfferId(),
+                type: 'buy',
+                asset: 'ETH',
+                price: 4650000,
+                min: 50000,
+                max: 1000000,
+                paymentMethod: 'Cash',
+                merchant: 'IslandDesk',
+                completionRate: 98,
+                trades: 540,
+                note: 'Cash pickups only in Lagos Island',
+                createdAt: new Date(now - 1800000).toISOString()
+            },
+            {
+                id: this.generateP2POfferId(),
+                type: 'sell',
+                asset: 'USDT',
+                price: 778.2,
+                min: 100000,
+                max: 2500000,
+                paymentMethod: 'Bank Transfer',
+                merchant: 'KanoRails',
+                completionRate: 95,
+                trades: 180,
+                note: 'UBA & GTB prioritised',
+                createdAt: new Date(now - 2400000).toISOString()
+            }
+        ];
+    }
+
+    generateSeedP2PTrades() {
+        const seedOffers = this.p2pOffers && this.p2pOffers.length ? this.p2pOffers : this.generateSeedP2POffers();
+        return seedOffers.slice(0, 3).map((offer, index) => ({
+            id: this.generateP2PTradeId(),
+            offerId: offer.id,
+            merchant: offer.merchant,
+            asset: offer.asset,
+            type: offer.type,
+            amount: offer.min + (index + 1) * 50000,
+            price: offer.price,
+            paymentMethod: offer.paymentMethod,
+            releaseMinutes: 10 + index * 3,
+            timestamp: new Date(Date.now() - (index + 1) * 3600000).toISOString()
+        }));
+    }
+
+    setP2PFilter(filterType, value) {
+        if (!this.p2pOfferContainer) return;
+        this.p2pFilters[filterType] = value;
+        this.renderP2POffers();
+    }
+
+    getFilteredOffers() {
+        const offers = Array.isArray(this.p2pOffers) ? this.p2pOffers : [];
+        return offers.filter(offer => {
+            const matchesSide = this.p2pFilters.side === 'all' || offer.type === this.p2pFilters.side;
+            const matchesAsset = this.p2pFilters.asset === 'all' || offer.asset === this.p2pFilters.asset;
+            const matchesPayment = this.p2pFilters.payment === 'all' || offer.paymentMethod === this.p2pFilters.payment;
+            return matchesSide && matchesAsset && matchesPayment;
+        });
+    }
+
+    renderP2POffers() {
+        if (!this.p2pOfferContainer) return;
+        const offers = this.getFilteredOffers();
+
+        if (offers.length === 0) {
+            this.p2pOfferContainer.innerHTML = '';
+            if (this.p2pEmptyState) {
+                this.p2pEmptyState.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (this.p2pEmptyState) {
+            this.p2pEmptyState.classList.add('hidden');
+        }
+
+        const fragment = document.createDocumentFragment();
+        offers.forEach(offer => {
+            const row = document.createElement('div');
+            row.className = 'offer-row';
+            row.innerHTML = `
+                <div>
+                    <p class="font-semibold text-white">${offer.merchant}</p>
+                    <p class="text-xs text-gray-400">${offer.completionRate}% completion • ${offer.trades} trades</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-400 uppercase tracking-wide">${offer.asset} Price</p>
+                    <p class="text-2xl font-bold text-blue-400 font-mono">₦${offer.price.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-400 uppercase tracking-wide">Limits</p>
+                    <p class="text-lg font-semibold text-white">₦${offer.min.toLocaleString()} - ₦${offer.max.toLocaleString()}</p>
+                    <p class="text-xs text-gray-500">${offer.paymentMethod}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-flex items-center text-xs px-3 py-1 rounded-full ${offer.type === 'buy' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-200'} mb-2">
+                        ${offer.type === 'buy' ? 'Buying' : 'Selling'}
+                    </span>
+                    <button data-p2p-take="${offer.id}" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
+                        ${offer.type === 'buy' ? 'Sell crypto' : 'Buy crypto'}
+                    </button>
+                </div>
+            `;
+            fragment.appendChild(row);
+        });
+
+        this.p2pOfferContainer.innerHTML = '';
+        this.p2pOfferContainer.appendChild(fragment);
+    }
+
+    createP2POffer(payload) {
+        if (!this.p2pOfferContainer) return null;
+        const offer = {
+            id: this.generateP2POfferId(),
+            type: payload.type === 'sell' ? 'sell' : 'buy',
+            asset: payload.asset || 'USDT',
+            price: Number(payload.price) || 0,
+            min: Number(payload.min) || 0,
+            max: Number(payload.max) || Number(payload.min) || 0,
+            paymentMethod: payload.paymentMethod || 'Bank Transfer',
+            merchant: payload.merchant || 'Desk Operator',
+            completionRate: 100,
+            trades: 0,
+            note: payload.note || '',
+            createdAt: new Date().toISOString()
+        };
+
+        this.p2pOffers.unshift(offer);
+        this.saveP2POffers();
+        this.renderP2POffers();
+        this.renderP2PStats();
+        this.showNotification('Offer published to the board.', 'success');
+        return offer;
+    }
+
+    acceptP2POffer(offerId) {
+        if (!this.p2pOfferContainer) return;
+        const offer = this.p2pOffers.find(o => o.id === offerId);
+        if (!offer) {
+            this.showNotification('Offer no longer available.', 'error');
+            return;
+        }
+
+        const amount = this.randomBetween(offer.min, offer.max);
+        const trade = {
+            id: this.generateP2PTradeId(),
+            offerId: offer.id,
+            merchant: offer.merchant,
+            asset: offer.asset,
+            type: offer.type,
+            amount,
+            price: offer.price,
+            paymentMethod: offer.paymentMethod,
+            releaseMinutes: this.randomBetween(8, 20),
+            timestamp: new Date().toISOString()
+        };
+
+        offer.trades += 1;
+        this.p2pTrades.unshift(trade);
+        this.saveP2PTrades();
+        this.saveP2POffers();
+        this.renderP2PActivity();
+        this.renderP2PStats();
+        this.showNotification(`Escrow opened with ${offer.merchant}.`, 'success');
+    }
+
+    renderP2PActivity() {
+        if (!this.p2pActivityContainer) return;
+        const trades = this.p2pTrades.slice(0, 6);
+        if (trades.length === 0) {
+            this.p2pActivityContainer.innerHTML = '<p class="text-sm text-gray-400">No trades recorded yet.</p>';
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        trades.forEach(trade => {
+            const row = document.createElement('div');
+            row.className = 'activity-row';
+            row.innerHTML = `
+                <div>
+                    <p class="text-white text-sm font-semibold">${trade.merchant}</p>
+                    <p class="text-xs text-gray-400">${trade.type === 'buy' ? 'bought' : 'sold'} ${trade.asset} • ${trade.paymentMethod}</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-mono text-green-300">₦${trade.amount.toLocaleString()}</p>
+                    <p class="text-xs text-gray-500">${new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+            `;
+            fragment.appendChild(row);
+        });
+
+        this.p2pActivityContainer.innerHTML = '';
+        this.p2pActivityContainer.appendChild(fragment);
+    }
+
+    renderP2PStats() {
+        const volumeElement = document.getElementById('p2p-volume');
+        const merchantsElement = document.getElementById('p2p-merchants');
+        const releaseElement = document.getElementById('p2p-release');
+        const escrowElement = document.getElementById('p2p-escrow');
+
+        if (!volumeElement && !merchantsElement && !releaseElement && !escrowElement) {
+            return;
+        }
+
+        const totalVolume = this.p2pTrades.reduce((sum, trade) => sum + (trade.amount || 0), 0);
+        const merchants = new Set(this.p2pOffers.map(offer => offer.merchant)).size;
+        const avgRelease = this.p2pTrades.length
+            ? Math.round(this.p2pTrades.reduce((sum, trade) => sum + (trade.releaseMinutes || 15), 0) / this.p2pTrades.length)
+            : 0;
+        const avgCompletion = this.p2pOffers.length
+            ? Math.round(this.p2pOffers.reduce((sum, offer) => sum + offer.completionRate, 0) / this.p2pOffers.length)
+            : 0;
+
+        if (volumeElement) volumeElement.textContent = this.formatFiat(totalVolume);
+        if (merchantsElement) merchantsElement.textContent = merchants;
+        if (releaseElement) releaseElement.textContent = `${avgRelease || 0}m`;
+        if (escrowElement) escrowElement.textContent = `${avgCompletion}%`;
+    }
     // Market Data and Trading
     loadMarketData() {
         // Mock market data - in real implementation, fetch from APIs
@@ -651,6 +937,23 @@ class CryptoPlatform {
         return 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     }
 
+    generateP2POfferId() {
+        return 'P2P-OFF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    }
+
+    generateP2PTradeId() {
+        return 'P2P-TRD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    }
+
+    randomBetween(min, max) {
+        const lower = Number(min) || 0;
+        const upper = Number(max) || lower;
+        if (upper <= lower) {
+            return Math.max(lower, 0);
+        }
+        return Math.round(Math.random() * (upper - lower)) + lower;
+    }
+
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
@@ -732,6 +1035,24 @@ class CryptoPlatform {
 
     loadTransactionsFromStorage() {
         const stored = localStorage.getItem('crypto-platform-transactions');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    saveP2POffers() {
+        localStorage.setItem('crypto-platform-p2p-offers', JSON.stringify(this.p2pOffers));
+    }
+
+    loadP2POffers() {
+        const stored = localStorage.getItem('crypto-platform-p2p-offers');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    saveP2PTrades() {
+        localStorage.setItem('crypto-platform-p2p-trades', JSON.stringify(this.p2pTrades));
+    }
+
+    loadP2PTrades() {
+        const stored = localStorage.getItem('crypto-platform-p2p-trades');
         return stored ? JSON.parse(stored) : [];
     }
 

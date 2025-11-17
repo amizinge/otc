@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Trading Desk - NaijaCrypto OTC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <link href="https://unpkg.com/splitting@1.0.6/dist/splitting.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-navy: #1a1d29;
+            --secondary-gold: #f7931a;
+            --accent-blue: #00d4ff;
+            --success-green: #10b981;
+            --warning-amber: #f59e0b;
+            --error-red: #ef4444;
+            --text-white: #ffffff;
+            --text-gray: #e5e7eb;
+            --card-bg: #2d3748;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-navy);
+            color: var(--text-white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hero-bg {
+            background: linear-gradient(135deg, #1a1d29 0%, #2d3748 50%, #1a1d29 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .glass-card {
+            background: rgba(45, 55, 72, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(0, 212, 255, 0.4);
+        }
+
+        .nav-blur {
+            background: rgba(10, 12, 22, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .p2p-badge {
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .offer-row {
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 16px;
+            align-items: center;
+            background: rgba(15, 18, 32, 0.6);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .offer-row:hover {
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .filter-button.active {
+            background: linear-gradient(120deg, #2563eb, #7c3aed);
+            border-color: transparent;
+        }
+
+        .p2p-empty {
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 18px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .activity-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .activity-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+    <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">NaijaCrypto OTC</h1>
+                        <p class="text-xs text-gray-400">Premium Trading Platform</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-300 hover:text-white transition-colors">Dashboard</a>
+                    <a href="trading.html" class="text-gray-300 hover:text-white transition-colors">Trading</a>
+                    <a href="p2p.html" class="text-blue-400 font-medium hover:text-blue-300 transition-colors">P2P</a>
+                    <a href="wallet.html" class="text-gray-300 hover:text-white transition-colors">Wallet</a>
+                    <a href="kyc.html" class="text-gray-300 hover:text-white transition-colors">KYC</a>
+                    <a href="history.html" class="text-gray-300 hover:text-white transition-colors">History</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block text-right">
+                        <p class="text-sm font-medium text-white">Desk Status</p>
+                        <p class="text-xs text-green-400">Operational</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">JD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-bg pt-24 pb-16 relative">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-12">
+                <div class="p2p-badge mx-auto mb-6 text-blue-200 bg-white/5 w-fit">Institutional P2P</div>
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                    <span class="typed-text" data-text="Peer-to-peer settlement for Nigeria"></span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                    Match vetted merchants, lock in NGN rates, and clear trades with escrow-level protections. Built for OTC desks that crave speed and compliance.
+                </p>
+                <button onclick="document.getElementById('p2p-offer-form').scrollIntoView({ behavior: 'smooth' });" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-4 rounded-full font-semibold hover:shadow-2xl transition-all">
+                    Create Offer
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div class="glass-card p-6 text-center">
+                    <p class="text-gray-400 text-sm mb-2">24h Matched Volume</p>
+                    <p class="text-3xl font-bold text-blue-400" id="p2p-volume">₦0</p>
+                    <p class="text-xs text-gray-500">Calculated across escrow releases</p>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <p class="text-gray-400 text-sm mb-2">Active Merchants</p>
+                    <p class="text-3xl font-bold text-green-400" id="p2p-merchants">0</p>
+                    <p class="text-xs text-gray-500">Entities with recent trades</p>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <p class="text-gray-400 text-sm mb-2">Avg Release Time</p>
+                    <p class="text-3xl font-bold text-yellow-400" id="p2p-release">0m</p>
+                    <p class="text-xs text-gray-500">From payment proof to crypto unlock</p>
+                </div>
+                <div class="glass-card p-6 text-center">
+                    <p class="text-gray-400 text-sm mb-2">Escrow Confidence</p>
+                    <p class="text-3xl font-bold text-purple-400" id="p2p-escrow">0%</p>
+                    <p class="text-xs text-gray-500">Completion rate across trades</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+            <div class="glass-card p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.3em] text-blue-200 mb-2">Live board</p>
+                        <h2 class="text-3xl font-bold text-white">Marketplace offers</h2>
+                        <p class="text-gray-400 max-w-2xl">Filter by side, asset or settlement method and accept offers in two clicks.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button data-p2p-filter="side" data-filter-value="all" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white active">
+                            All
+                        </button>
+                        <button data-p2p-filter="side" data-filter-value="buy" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white">
+                            Buyers
+                        </button>
+                        <button data-p2p-filter="side" data-filter-value="sell" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white">
+                            Sellers
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wide">Asset:</span>
+                        <div class="flex bg-black/30 rounded-full p-1">
+                            <button data-p2p-filter="asset" data-filter-value="all" class="filter-button text-xs px-3 py-1 rounded-full text-white active">All</button>
+                            <button data-p2p-filter="asset" data-filter-value="USDT" class="filter-button text-xs px-3 py-1 rounded-full text-white">USDT</button>
+                            <button data-p2p-filter="asset" data-filter-value="BTC" class="filter-button text-xs px-3 py-1 rounded-full text-white">BTC</button>
+                            <button data-p2p-filter="asset" data-filter-value="ETH" class="filter-button text-xs px-3 py-1 rounded-full text-white">ETH</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400 uppercase tracking-wide">Payment:</span>
+                        <div class="flex bg-black/30 rounded-full p-1">
+                            <button data-p2p-filter="payment" data-filter-value="all" class="filter-button text-xs px-3 py-1 rounded-full text-white active">All</button>
+                            <button data-p2p-filter="payment" data-filter-value="Bank Transfer" class="filter-button text-xs px-3 py-1 rounded-full text-white">Bank</button>
+                            <button data-p2p-filter="payment" data-filter-value="USSD" class="filter-button text-xs px-3 py-1 rounded-full text-white">USSD</button>
+                            <button data-p2p-filter="payment" data-filter-value="Cash" class="filter-button text-xs px-3 py-1 rounded-full text-white">Cash</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4" id="p2p-offer-list"></div>
+                <div class="p2p-empty hidden" id="p2p-empty-state">
+                    <p class="font-semibold text-white mb-2">No offers match the filter</p>
+                    <p class="text-gray-400 text-sm mb-4">Relax filters or create the liquidity you need below.</p>
+                    <button onclick="document.getElementById('p2p-offer-form').scrollIntoView({behavior: 'smooth'});" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm">Post an offer</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="glass-card p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.3em] text-blue-200 mb-1">Liquidity</p>
+                            <h3 class="text-2xl font-bold text-white">Create an offer</h3>
+                        </div>
+                        <span class="text-xs text-gray-400 bg-white/5 px-3 py-1 rounded-full">Instant escrow</span>
+                    </div>
+                    <form id="p2p-offer-form" class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Side</label>
+                                <select name="type" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                                    <option value="buy">Buy Crypto</option>
+                                    <option value="sell">Sell Crypto</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Asset</label>
+                                <select name="asset" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                                    <option value="USDT">USDT</option>
+                                    <option value="BTC">BTC</option>
+                                    <option value="ETH">ETH</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Price (₦)</label>
+                                <input name="price" type="number" step="0.01" placeholder="780.00" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Min (₦)</label>
+                                <input name="min" type="number" placeholder="100000" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Max (₦)</label>
+                                <input name="max" type="number" placeholder="3000000" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Payment Method</label>
+                                <select name="payment" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="USSD">USSD</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-300 mb-2 block">Merchant Alias</label>
+                                <input name="merchant" type="text" placeholder="LagosVault" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-300 mb-2 block">Notes to counter-party</label>
+                            <textarea name="note" rows="3" placeholder="Same bank transfer preferred" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white"></textarea>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <p class="text-xs text-gray-400">Escrow will hold crypto until NGN transfer proof is uploaded.</p>
+                            <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                                Publish offer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white">Recent trades</h3>
+                        <button onclick="window.cryptoPlatform?.exportTransactionHistory()" class="text-sm text-blue-300 hover:text-blue-200">Export</button>
+                    </div>
+                    <div id="p2p-activity" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">₦</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">NaijaCrypto OTC</h3>
+                </div>
+                <p class="text-gray-400 mb-6">Nigeria's premier peer-to-peer clearinghouse</p>
+                <div class="border-t border-gray-700 pt-6">
+                    <p class="text-gray-500 text-sm">© 2025 NaijaCrypto OTC. Built for compliance-grade OTC desks.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterButtons = document.querySelectorAll('[data-p2p-filter]');
+            const filterState = {};
+
+            const updateActiveButtons = (type, target) => {
+                document.querySelectorAll(`[data-p2p-filter="${type}"]`).forEach(btn => btn.classList.remove('active'));
+                target.classList.add('active');
+            };
+
+            filterButtons.forEach(button => {
+                const type = button.dataset.p2pFilter;
+                if (!filterState[type]) {
+                    filterState[type] = button.dataset.filterValue;
+                }
+
+                button.addEventListener('click', () => {
+                    filterState[type] = button.dataset.filterValue;
+                    updateActiveButtons(type, button);
+                    window.cryptoPlatform?.setP2PFilter(type, button.dataset.filterValue);
+                });
+            });
+
+            const offerList = document.getElementById('p2p-offer-list');
+            offerList?.addEventListener('click', (event) => {
+                const target = event.target.closest('[data-p2p-take]');
+                if (!target) return;
+                event.preventDefault();
+                const offerId = target.dataset.p2pTake;
+                window.cryptoPlatform?.acceptP2POffer(offerId);
+            });
+
+            const form = document.getElementById('p2p-offer-form');
+            form?.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const data = new FormData(form);
+                window.cryptoPlatform?.createP2POffer({
+                    type: data.get('type'),
+                    asset: data.get('asset'),
+                    price: Number(data.get('price')),
+                    min: Number(data.get('min')),
+                    max: Number(data.get('max')),
+                    paymentMethod: data.get('payment'),
+                    merchant: data.get('merchant') || 'Desk Operator',
+                    note: data.get('note')
+                });
+                form.reset();
+            });
+        });
+    </script>
+</body>
+</html>
