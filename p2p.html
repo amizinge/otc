@@ -7,350 +7,342 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
-    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
-    <link href="https://unpkg.com/splitting@1.0.6/dist/splitting.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-navy: #1a1d29;
-            --secondary-gold: #f7931a;
-            --accent-blue: #00d4ff;
-            --success-green: #10b981;
-            --warning-amber: #f59e0b;
-            --error-red: #ef4444;
-            --text-white: #ffffff;
-            --text-gray: #e5e7eb;
-            --card-bg: #2d3748;
+            --bg: #040404;
+            --card: #111112;
+            --card-dark: #09090a;
+            --accent: #00ff94;
+            --muted: #7c7c84;
         }
 
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--primary-navy);
-            color: var(--text-white);
-            overflow-x: hidden;
-            line-height: 1.6;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
         }
 
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+        .app-shell {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--bg);
+            padding-bottom: 90px;
         }
 
-        .hero-bg {
-            background: linear-gradient(135deg, #1a1d29 0%, #2d3748 50%, #1a1d29 100%);
-            position: relative;
-            overflow: hidden;
+        .status-bar {
+            font-size: 13px;
+            color: #f3f4f6;
+            opacity: 0.8;
         }
 
-        .particle-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .glass-card {
-            background: rgba(45, 55, 72, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-            transition: all 0.3s ease;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(0, 212, 255, 0.4);
-        }
-
-        .nav-blur {
-            background: rgba(10, 12, 22, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .p2p-badge {
+        .tab-button {
+            padding: 8px 16px;
             border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 4px 12px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 14px;
+            border: none;
+            font-weight: 500;
         }
 
-        .offer-row {
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 16px;
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 16px;
+        .tab-button.active {
+            background: #1f1f22;
+            color: #fff;
+        }
+
+        .toggle-pill {
+            border-radius: 999px;
+            background: #0d0d0f;
+            padding: 4px;
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .toggle-pill button {
+            flex: 1;
+            padding: 8px 22px;
+            border-radius: 999px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            background: transparent;
+            color: #9ca3af;
+        }
+
+        .toggle-pill button.active {
+            background: #fff;
+            color: #000;
+        }
+
+        .filter-chip {
+            background: #111112;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #d1d5db;
+            display: inline-flex;
             align-items: center;
-            background: rgba(15, 18, 32, 0.6);
-            transition: border-color 0.2s ease, transform 0.2s ease;
+            gap: 8px;
         }
 
-        .offer-row:hover {
-            border-color: rgba(0, 212, 255, 0.3);
-            transform: translateY(-2px);
+        .offer-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 18px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
         }
 
-        .filter-button.active {
-            background: linear-gradient(120deg, #2563eb, #7c3aed);
-            border-color: transparent;
+        .offer-card + .offer-card {
+            margin-top: 12px;
         }
 
-        .p2p-empty {
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 18px;
-            padding: 32px;
+        .offer-price {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .offer-meta {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .buy-button {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            padding: 10px 26px;
+            border-radius: 999px;
+            border: none;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 12px;
+            width: min(480px, calc(100% - 24px));
+            background: rgba(15, 15, 16, 0.95);
+            border-radius: 24px;
+            display: flex;
+            justify-content: space-around;
+            padding: 14px 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .bottom-nav button {
+            background: none;
+            border: none;
+            color: #8c8c92;
+            font-size: 12px;
             text-align: center;
         }
 
-        .activity-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        .bottom-nav button.active {
+            color: #fff;
+            font-weight: 600;
         }
 
-        .activity-row:last-child {
-            border-bottom: none;
+        .floating-button {
+            position: fixed;
+            right: 24px;
+            bottom: 110px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 600;
+            padding: 14px 22px;
+            border-radius: 999px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
+        }
+
+        .offer-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .offer-modal.show {
+            display: flex;
+        }
+
+        .offer-sheet {
+            width: 100%;
+            max-width: 480px;
+            background: #111113;
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .offer-sheet label {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        .offer-sheet input,
+        .offer-sheet select,
+        .offer-sheet textarea {
+            width: 100%;
+            background: #0b0b0d;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px;
+            border-radius: 14px;
+            color: #fff;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        .offer-sheet button[type="submit"] {
+            width: 100%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 16px;
+            padding: 14px;
+            font-weight: 700;
+            margin-top: 18px;
         }
     </style>
 </head>
 <body>
-    <canvas id="particle-canvas" class="particle-canvas"></canvas>
-
-    <nav class="nav-blur fixed top-0 left-0 right-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-lg">₦</span>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-white">NaijaCrypto OTC</h1>
-                        <p class="text-xs text-gray-400">Premium Trading Platform</p>
-                    </div>
-                </div>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="index.html" class="text-gray-300 hover:text-white transition-colors">Dashboard</a>
-                    <a href="trading.html" class="text-gray-300 hover:text-white transition-colors">Trading</a>
-                    <a href="p2p.html" class="text-blue-400 font-medium hover:text-blue-300 transition-colors">P2P</a>
-                    <a href="wallet.html" class="text-gray-300 hover:text-white transition-colors">Wallet</a>
-                    <a href="kyc.html" class="text-gray-300 hover:text-white transition-colors">KYC</a>
-                    <a href="history.html" class="text-gray-300 hover:text-white transition-colors">History</a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="hidden md:block text-right">
-                        <p class="text-sm font-medium text-white">Desk Status</p>
-                        <p class="text-xs text-green-400">Operational</p>
-                    </div>
-                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">JD</span>
-                    </div>
+    <div class="app-shell">
+        <div class="px-5 pt-5 space-y-6">
+            <div class="status-bar flex items-center justify-between">
+                <span>1:48</span>
+                <div class="flex items-center gap-1 text-[11px]">
+                    <span>LTE</span>
+                    <span>64%</span>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <section class="hero-bg pt-24 pb-16 relative">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="text-center mb-12">
-                <div class="p2p-badge mx-auto mb-6 text-blue-200 bg-white/5 w-fit">Institutional P2P</div>
-                <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                    <span class="typed-text" data-text="Peer-to-peer settlement for Nigeria"></span>
-                </h1>
-                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-                    Match vetted merchants, lock in NGN rates, and clear trades with escrow-level protections. Built for OTC desks that crave speed and compliance.
-                </p>
-                <button onclick="document.getElementById('p2p-offer-form').scrollIntoView({ behavior: 'smooth' });" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-4 rounded-full font-semibold hover:shadow-2xl transition-all">
-                    Create Offer
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <a href="trading.html" class="w-9 h-9 rounded-full bg-[#0f0f12] flex items-center justify-center">&#8592;</a>
+                    <div class="flex bg-[#0f0f12] rounded-full p-1">
+                        <button class="tab-button">Express</button>
+                        <button class="tab-button active">P2P</button>
+                        <button class="tab-button">Block Trade</button>
+                    </div>
+                </div>
+                <button class="filter-chip text-xs">NGN ▼</button>
+            </div>
+
+            <div class="rounded-3xl bg-gradient-to-r from-[#1f2937] to-[#0f172a] p-5">
+                <p class="text-xs text-gray-400 mb-1 uppercase tracking-[0.3em]">Bybit P2P</p>
+                <h2 class="text-2xl font-bold mb-2">Merchant Exclusive</h2>
+                <p class="text-sm text-gray-300">Claim up to 15% fee cashback on buy ads.</p>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="toggle-pill">
+                    <button class="active" data-p2p-filter="side" data-filter-value="buy">Buy</button>
+                    <button data-p2p-filter="side" data-filter-value="sell">Sell</button>
+                </div>
+                <button data-connect-wallet data-default-label="Connect" class="px-4 py-2 rounded-full border border-blue-500 text-sm font-semibold">
+                    Connect
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div class="glass-card p-6 text-center">
-                    <p class="text-gray-400 text-sm mb-2">24h Matched Volume</p>
-                    <p class="text-3xl font-bold text-blue-400" id="p2p-volume">₦0</p>
-                    <p class="text-xs text-gray-500">Calculated across escrow releases</p>
-                </div>
-                <div class="glass-card p-6 text-center">
-                    <p class="text-gray-400 text-sm mb-2">Active Merchants</p>
-                    <p class="text-3xl font-bold text-green-400" id="p2p-merchants">0</p>
-                    <p class="text-xs text-gray-500">Entities with recent trades</p>
-                </div>
-                <div class="glass-card p-6 text-center">
-                    <p class="text-gray-400 text-sm mb-2">Avg Release Time</p>
-                    <p class="text-3xl font-bold text-yellow-400" id="p2p-release">0m</p>
-                    <p class="text-xs text-gray-500">From payment proof to crypto unlock</p>
-                </div>
-                <div class="glass-card p-6 text-center">
-                    <p class="text-gray-400 text-sm mb-2">Escrow Confidence</p>
-                    <p class="text-3xl font-bold text-purple-400" id="p2p-escrow">0%</p>
-                    <p class="text-xs text-gray-500">Completion rate across trades</p>
-                </div>
+            <div class="flex flex-wrap gap-3">
+                <button class="filter-chip active" data-p2p-filter="asset" data-filter-value="all">All Assets ▼</button>
+                <button class="filter-chip" data-p2p-filter="asset" data-filter-value="USDT">USDT</button>
+                <button class="filter-chip" data-p2p-filter="asset" data-filter-value="BTC">BTC</button>
+                <button class="filter-chip" data-p2p-filter="asset" data-filter-value="ETH">ETH</button>
+                <button class="filter-chip active" data-p2p-filter="payment" data-filter-value="all">All Payment ▼</button>
             </div>
         </div>
-    </section>
 
-    <section class="py-16">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-            <div class="glass-card p-6">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div class="px-5 pt-6" id="p2p-offer-list"></div>
+        <div class="px-5 pt-6 hidden" id="p2p-empty-state">
+            <div class="text-center bg-[#0f0f12] rounded-2xl p-6 border border-dashed border-gray-700">
+                <p class="font-semibold text-white mb-1">No offers found</p>
+                <p class="text-sm text-gray-400 mb-4">Try another filter or publish your own offer.</p>
+                <button data-open-offer-modal class="px-4 py-2 rounded-full bg-blue-600 text-white text-sm">Post an offer</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="floating-button" data-open-offer-modal>Post Offer</button>
+
+    <div class="bottom-nav">
+        <button class="active">P2P</button>
+        <button>Orders</button>
+        <button>Ads</button>
+        <button>Profile</button>
+    </div>
+
+    <div id="p2p-offer-modal" class="offer-modal">
+        <div class="offer-sheet">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-semibold">Create Offer</h3>
+                <button data-close-offer-modal class="text-gray-400">&#10005;</button>
+            </div>
+            <form id="p2p-offer-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <p class="text-sm uppercase tracking-[0.3em] text-blue-200 mb-2">Live board</p>
-                        <h2 class="text-3xl font-bold text-white">Marketplace offers</h2>
-                        <p class="text-gray-400 max-w-2xl">Filter by side, asset or settlement method and accept offers in two clicks.</p>
+                        <label>Side</label>
+                        <select name="type">
+                            <option value="buy">Buy Crypto</option>
+                            <option value="sell">Sell Crypto</option>
+                        </select>
                     </div>
-                    <div class="flex flex-wrap gap-3">
-                        <button data-p2p-filter="side" data-filter-value="all" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white active">
-                            All
-                        </button>
-                        <button data-p2p-filter="side" data-filter-value="buy" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white">
-                            Buyers
-                        </button>
-                        <button data-p2p-filter="side" data-filter-value="sell" class="filter-button px-4 py-2 rounded-full border border-gray-600 text-sm text-white">
-                            Sellers
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap gap-3 mb-6">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400 uppercase tracking-wide">Asset:</span>
-                        <div class="flex bg-black/30 rounded-full p-1">
-                            <button data-p2p-filter="asset" data-filter-value="all" class="filter-button text-xs px-3 py-1 rounded-full text-white active">All</button>
-                            <button data-p2p-filter="asset" data-filter-value="USDT" class="filter-button text-xs px-3 py-1 rounded-full text-white">USDT</button>
-                            <button data-p2p-filter="asset" data-filter-value="BTC" class="filter-button text-xs px-3 py-1 rounded-full text-white">BTC</button>
-                            <button data-p2p-filter="asset" data-filter-value="ETH" class="filter-button text-xs px-3 py-1 rounded-full text-white">ETH</button>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400 uppercase tracking-wide">Payment:</span>
-                        <div class="flex bg-black/30 rounded-full p-1">
-                            <button data-p2p-filter="payment" data-filter-value="all" class="filter-button text-xs px-3 py-1 rounded-full text-white active">All</button>
-                            <button data-p2p-filter="payment" data-filter-value="Bank Transfer" class="filter-button text-xs px-3 py-1 rounded-full text-white">Bank</button>
-                            <button data-p2p-filter="payment" data-filter-value="USSD" class="filter-button text-xs px-3 py-1 rounded-full text-white">USSD</button>
-                            <button data-p2p-filter="payment" data-filter-value="Cash" class="filter-button text-xs px-3 py-1 rounded-full text-white">Cash</button>
-                        </div>
+                    <div>
+                        <label>Asset</label>
+                        <select name="asset">
+                            <option value="USDT">USDT</option>
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="space-y-4" id="p2p-offer-list"></div>
-                <div class="p2p-empty hidden" id="p2p-empty-state">
-                    <p class="font-semibold text-white mb-2">No offers match the filter</p>
-                    <p class="text-gray-400 text-sm mb-4">Relax filters or create the liquidity you need below.</p>
-                    <button onclick="document.getElementById('p2p-offer-form').scrollIntoView({behavior: 'smooth'});" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm">Post an offer</button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="glass-card p-6 lg:col-span-2">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <p class="text-xs uppercase tracking-[0.3em] text-blue-200 mb-1">Liquidity</p>
-                            <h3 class="text-2xl font-bold text-white">Create an offer</h3>
-                        </div>
-                        <span class="text-xs text-gray-400 bg-white/5 px-3 py-1 rounded-full">Instant escrow</span>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label>Price (₦)</label>
+                        <input type="number" name="price" placeholder="1460">
                     </div>
-                    <form id="p2p-offer-form" class="space-y-5">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Side</label>
-                                <select name="type" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                                    <option value="buy">Buy Crypto</option>
-                                    <option value="sell">Sell Crypto</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Asset</label>
-                                <select name="asset" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                                    <option value="USDT">USDT</option>
-                                    <option value="BTC">BTC</option>
-                                    <option value="ETH">ETH</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Price (₦)</label>
-                                <input name="price" type="number" step="0.01" placeholder="780.00" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                            </div>
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Min (₦)</label>
-                                <input name="min" type="number" placeholder="100000" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                            </div>
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Max (₦)</label>
-                                <input name="max" type="number" placeholder="3000000" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Payment Method</label>
-                                <select name="payment" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="USSD">USSD</option>
-                                    <option value="Cash">Cash</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-sm text-gray-300 mb-2 block">Merchant Alias</label>
-                                <input name="merchant" type="text" placeholder="LagosVault" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-sm text-gray-300 mb-2 block">Notes to counter-party</label>
-                            <textarea name="note" rows="3" placeholder="Same bank transfer preferred" class="w-full bg-black/40 border border-gray-600 rounded-lg px-4 py-3 text-white"></textarea>
-                        </div>
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <p class="text-xs text-gray-400">Escrow will hold crypto until NGN transfer proof is uploaded.</p>
-                            <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
-                                Publish offer
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div class="glass-card p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-white">Recent trades</h3>
-                        <button onclick="window.cryptoPlatform?.exportTransactionHistory()" class="text-sm text-blue-300 hover:text-blue-200">Export</button>
+                    <div>
+                        <label>Payment Method</label>
+                        <select name="payment">
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="USSD">USSD</option>
+                            <option value="Cash">Cash</option>
+                        </select>
                     </div>
-                    <div id="p2p-activity" class="space-y-3"></div>
                 </div>
-            </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label>Min (₦)</label>
+                        <input type="number" name="min" placeholder="5000">
+                    </div>
+                    <div>
+                        <label>Max (₦)</label>
+                        <input type="number" name="max" placeholder="5000000">
+                    </div>
+                </div>
+                <div>
+                    <label>Merchant Alias</label>
+                    <input type="text" name="merchant" placeholder="Saleem-Exchange">
+                </div>
+                <div>
+                    <label>Notes</label>
+                    <textarea name="note" rows="3" placeholder="Bank transfer only"></textarea>
+                </div>
+                <button type="submit">Publish Offer</button>
+            </form>
         </div>
-    </section>
-
-    <footer class="bg-gray-900 py-12">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <div class="flex items-center justify-center space-x-3 mb-4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-lg">₦</span>
-                    </div>
-                    <h3 class="text-2xl font-bold text-white">NaijaCrypto OTC</h3>
-                </div>
-                <p class="text-gray-400 mb-6">Nigeria's premier peer-to-peer clearinghouse</p>
-                <div class="border-t border-gray-700 pt-6">
-                    <p class="text-gray-500 text-sm">© 2025 NaijaCrypto OTC. Built for compliance-grade OTC desks.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    </div>
 
     <script src="main.js"></script>
     <script>
@@ -385,6 +377,22 @@
                 window.cryptoPlatform?.acceptP2POffer(offerId);
             });
 
+            const modal = document.getElementById('p2p-offer-modal');
+            const toggleOfferModal = (show) => {
+                if (!modal) return;
+                modal.classList.toggle('show', show);
+            };
+
+            document.querySelectorAll('[data-open-offer-modal]').forEach(btn => {
+                btn.addEventListener('click', () => toggleOfferModal(true));
+            });
+            document.querySelectorAll('[data-close-offer-modal]').forEach(btn => {
+                btn.addEventListener('click', () => toggleOfferModal(false));
+            });
+            modal?.addEventListener('click', (event) => {
+                if (event.target === modal) toggleOfferModal(false);
+            });
+
             const form = document.getElementById('p2p-offer-form');
             form?.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -396,11 +404,14 @@
                     min: Number(data.get('min')),
                     max: Number(data.get('max')),
                     paymentMethod: data.get('payment'),
-                    merchant: data.get('merchant') || 'Desk Operator',
+                    merchant: data.get('merchant'),
                     note: data.get('note')
                 });
                 form.reset();
+                toggleOfferModal(false);
             });
+
+            window.cryptoPlatform?.setP2PFilter('side', 'buy');
         });
     </script>
 </body>

@@ -22,6 +22,7 @@ class CryptoPlatform {
         this.p2pOffers = [];
         this.p2pTrades = [];
         this.p2pFilters = { side: 'all', asset: 'all', payment: 'all' };
+        this.connectedWallet = null;
         this.supportedNetworks = ['bitcoin', 'ethereum', 'bnb', 'solana', 'polygon', 'tron'];
         this.networkMeta = {
             bitcoin: { name: 'Bitcoin', symbol: 'BTC', icon: '₿', color: '#f7931a' },
@@ -48,6 +49,8 @@ class CryptoPlatform {
         this.loadMarketData();
         this.initializeWallets();
         this.initializeP2PDesk();
+        this.restoreWalletConnection();
+        this.setupWalletProviderListeners();
         this.setupRealTimeUpdates();
     }
 
@@ -487,27 +490,32 @@ class CryptoPlatform {
         const fragment = document.createDocumentFragment();
         offers.forEach(offer => {
             const row = document.createElement('div');
-            row.className = 'offer-row';
+            row.className = 'offer-card';
+            const quantity = this.formatOfferQuantity(offer);
             row.innerHTML = `
-                <div>
-                    <p class="font-semibold text-white">${offer.merchant}</p>
-                    <p class="text-xs text-gray-400">${offer.completionRate}% completion • ${offer.trades} trades</p>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-[#1f1f24] flex items-center justify-center font-semibold text-lg">
+                                ${offer.merchant?.charAt(0)?.toUpperCase() || 'M'}
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold tracking-wide">${offer.merchant}</p>
+                                <p class="offer-meta">${offer.trades} Orders | ${offer.completionRate}%</p>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 flex items-center gap-1">
+                            <span>⏱</span>15m
+                        </div>
+                    </div>
+                    <div class="offer-price">₦${offer.price.toLocaleString()}</div>
+                    <p class="offer-meta">Limits ₦${offer.min.toLocaleString()} - ₦${offer.max.toLocaleString()} NGN</p>
+                    <p class="offer-meta">Quantity ${quantity} ${offer.asset}</p>
+                    <p class="offer-meta mt-2 text-blue-300">${offer.paymentMethod}</p>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-400 uppercase tracking-wide">${offer.asset} Price</p>
-                    <p class="text-2xl font-bold text-blue-400 font-mono">₦${offer.price.toLocaleString()}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-400 uppercase tracking-wide">Limits</p>
-                    <p class="text-lg font-semibold text-white">₦${offer.min.toLocaleString()} - ₦${offer.max.toLocaleString()}</p>
-                    <p class="text-xs text-gray-500">${offer.paymentMethod}</p>
-                </div>
-                <div class="text-right">
-                    <span class="inline-flex items-center text-xs px-3 py-1 rounded-full ${offer.type === 'buy' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-200'} mb-2">
-                        ${offer.type === 'buy' ? 'Buying' : 'Selling'}
-                    </span>
-                    <button data-p2p-take="${offer.id}" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
-                        ${offer.type === 'buy' ? 'Sell crypto' : 'Buy crypto'}
+                <div class="flex flex-col justify-center">
+                    <button data-p2p-take="${offer.id}" class="buy-button">
+                        ${offer.type === 'buy' ? 'Sell' : 'Buy'}
                     </button>
                 </div>
             `;
@@ -626,6 +634,93 @@ class CryptoPlatform {
         if (merchantsElement) merchantsElement.textContent = merchants;
         if (releaseElement) releaseElement.textContent = `${avgRelease || 0}m`;
         if (escrowElement) escrowElement.textContent = `${avgCompletion}%`;
+    }
+
+    formatOfferQuantity(offer) {
+        if (!offer?.price) {
+            return '0.0000';
+        }
+        const basis = offer.max || offer.min || 0;
+        if (basis <= 0) return '0.0000';
+        return (basis / offer.price).toFixed(4);
+    }
+
+    // Wallet Connection
+    restoreWalletConnection() {
+        const stored = localStorage.getItem('crypto-platform-connected-wallet');
+        this.connectedWallet = stored || null;
+        this.updateWalletConnectUI();
+    }
+
+    setupWalletProviderListeners() {
+        if (typeof window === 'undefined' || !window.ethereum?.on) return;
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts && accounts.length) {
+                this.connectedWallet = accounts[0];
+                this.saveConnectedWallet(this.connectedWallet);
+                this.showNotification('Wallet account changed.', 'info');
+            } else {
+                this.connectedWallet = null;
+                this.saveConnectedWallet(null);
+                this.showNotification('Wallet disconnected.', 'info');
+            }
+            this.updateWalletConnectUI();
+        });
+    }
+
+    async connectWallet(button) {
+        if (!window.ethereum || !window.ethereum.request) {
+            this.showNotification('No web3 wallet detected. Install MetaMask or a compatible provider.', 'error');
+            return;
+        }
+
+        try {
+            button?.classList.add('animate-pulse');
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            if (accounts && accounts.length) {
+                this.connectedWallet = accounts[0];
+                this.saveConnectedWallet(this.connectedWallet);
+                this.updateWalletConnectUI();
+                this.showNotification('Wallet connected successfully.', 'success');
+            }
+        } catch (error) {
+            if (error?.code === 4001) {
+                this.showNotification('Wallet connection rejected by user.', 'error');
+            } else {
+                this.showNotification('Unable to connect wallet. Please try again.', 'error');
+            }
+        } finally {
+            button?.classList.remove('animate-pulse');
+        }
+    }
+
+    updateWalletConnectUI() {
+        const buttons = document.querySelectorAll('[data-connect-wallet]');
+        buttons.forEach(button => {
+            const defaultLabel = button.dataset.defaultLabel || 'Connect Wallet';
+            if (this.connectedWallet) {
+                button.textContent = this.formatAddress(this.connectedWallet);
+                button.classList.add('connected', 'bg-blue-600/20');
+                button.title = this.connectedWallet;
+            } else {
+                button.textContent = defaultLabel;
+                button.classList.remove('connected', 'bg-blue-600/20');
+                button.title = defaultLabel;
+            }
+        });
+    }
+
+    saveConnectedWallet(address) {
+        if (address) {
+            localStorage.setItem('crypto-platform-connected-wallet', address);
+        } else {
+            localStorage.removeItem('crypto-platform-connected-wallet');
+        }
+    }
+
+    formatAddress(address) {
+        if (!address) return '';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
     // Market Data and Trading
     loadMarketData() {
@@ -792,6 +887,12 @@ class CryptoPlatform {
             const copyTarget = target.closest('[data-copy]');
             if (copyTarget?.dataset.copy) {
                 this.copyText(copyTarget.dataset.copy, copyTarget.dataset.copyMessage || 'Copied to clipboard!');
+            }
+
+            const connectTrigger = target.closest('[data-connect-wallet]');
+            if (connectTrigger) {
+                e.preventDefault();
+                this.connectWallet(connectTrigger);
             }
         });
 
